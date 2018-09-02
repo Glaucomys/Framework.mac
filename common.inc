@@ -515,7 +515,7 @@
 				/if (${Role.Equal[puller]} && ${ChainPull} && ${DPSOn}) /call newcombatcast
 			}   
 |  ||  (${Me.XTarget[1].ID} > 0 && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}
-			/if ((${Spawn[corpse id ${MyTargetID}].ID}) || (!${Spawn[targetable id ${MyTargetID}].ID}) || ${Me.Feigning} ||  (${Me.XTarget[1].ID} > 0 && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}) ) {
+			/if (${MyTargetID}==0 || (${Spawn[corpse id ${MyTargetID}].ID}) || (!${Spawn[targetable id ${MyTargetID}].ID}) || ${Me.Feigning} ||  (${Me.XTarget[1].ID} > 0 && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}) ) {
 				/call CombatReset 0 combat
 				/varset MyTargetID 0
 				/varset healcount 0
