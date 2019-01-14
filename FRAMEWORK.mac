@@ -10,27 +10,29 @@
 | -------------------------------------------------------------------------------------
 #warning
 #turbo 120
-#include FRAMEWORK\quests.inc
-#include FRAMEWORK\ninjadvloot.inc
-#include FRAMEWORK\Raid.inc
-#include FRAMEWORK3\common.inc
-#include FRAMEWORK\ber.inc
-#include FRAMEWORK\brd.inc
-#include FRAMEWORK\bst.inc
-#include FRAMEWORK\clr.inc
-#include FRAMEWORK\dru.inc
-#include FRAMEWORK\enc.inc
-#include FRAMEWORK\mag.inc
-#include FRAMEWORK\mnk.inc
-#include FRAMEWORK\nec.inc
-#include FRAMEWORK\pal.inc
-#include FRAMEWORK\rng.inc
-#include FRAMEWORK\rog.inc
-#include FRAMEWORK\shd.inc
-#include FRAMEWORK\shm.inc
-#include FRAMEWORK\war.inc
-#include FRAMEWORK\wiz.inc
-#include FRAMEWORK\Manual.inc
+#warning
+#turbo 120
+#include framework3\quests.inc
+#include framework3\ninjadvloot.inc
+#include framework3\Raid.inc
+#include framework3\common.inc
+#include framework3\ber.inc
+#include framework3\brd.inc
+#include framework3\bst.inc
+#include framework3\clr.inc
+#include framework3\dru.inc
+#include framework3\enc.inc
+#include framework3\mag.inc
+#include framework3\mnk.inc
+#include framework3\nec.inc
+#include framework3\pal.inc
+#include framework3\rng.inc
+#include framework3\rog.inc
+#include framework3\shd.inc
+#include framework3\shm.inc
+#include framework3\war.inc
+#include framework3\wiz.inc
+#include framework3\Manual.inc
 |#DEFINE /squelch " "
 | ------------------------------casting events ----------------------------------------
 #Event CAST_BEGIN                  "You begin casting#*#"
