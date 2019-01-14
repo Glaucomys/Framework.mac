@@ -18,8 +18,8 @@
 			/declare tmpHealOverride										float outer 99.99
 			
 			/declare badaggroid 											int outer 0
-			/declare modSingleHeal[15]         string      outer
-			/declare modSHCond[15]             string      outer       TRUE
+			|/declare modSingleHeal[15]         string      outer
+			|/declare modSHCond[15]             string      outer       TRUE
 	|		/if (${HealsOn}) {
 	|        /call FindmodSingleHeals
 	|		}
@@ -56,30 +56,11 @@
 		   /declare InnyYLoc               int         outer       ${Me.Y}
 	   
 		
-			/call LoadIni Mod_Heal Xtarheal_ON								int	 0
-			/call LoadIni Mod_Heal grpheal									int	 75
-			/call LoadIni Mod_Heal PetPoint 								int  80	
-			/call LoadIni Mod_Heal CLRPoint		 							int  80
-			/call LoadIni Mod_Heal DRUPoint 								int  70
-			/call LoadIni Mod_Heal SHMPoint 								int  60
-			/call LoadIni Mod_Heal WIZPoint 								int  75
-			/call LoadIni Mod_Heal MAGPoint 								int  75
-			/call LoadIni Mod_Heal ENCPoint 								int  80
-			/call LoadIni Mod_Heal NECPoint 								int  75
-			/call LoadIni Mod_Heal WARPoint 								int  70
-			/call LoadIni Mod_Heal MNKPoint 								int  60
-			/call LoadIni Mod_Heal ROGPoint 								int  60
-			/call LoadIni Mod_Heal RNGPoint 								int  90
-			/call LoadIni Mod_Heal BSTPoint 								int  70
-			/call LoadIni Mod_Heal SHDPoint 								int  90
-			/call LoadIni Mod_Heal BRDPoint 								int  65
-			/call LoadIni Mod_Heal BERPoint 								int  70
-			/call LoadIni Mod_Heal PALPoint 								int  90
-			/call LoadIni Mod_Heal GoMpoint 								int  80	
+		
 			
 			/declare ReportDefense bool outer FALSE
 			
-			/plugin mq2worsthurt load
+			|/plugin mq2worsthurt load
 		
 
 		
@@ -97,6 +78,7 @@
 		
 	/return
 
+	
 | -------------------------------------------------------------------------------------
 | SUB: newcombatcast
 | -------------------------------------------------------------------------------------    
@@ -348,6 +330,210 @@
 |----------------------------------------------------------------------------
 |- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
 |---------------------------------------------------------------------------- 
+Sub NewCast(TarID, Array, Spell)
+	/doevents 
+	
+	/declare i int local
+	/declare SkipFlag    int      local 0
+	/varset CastResult CAST_NO_RESULT
+	/declare CastThis string local
+	/declare MashThisArg3 string local
+	/declare MashThisArg4 string local
+	/declare MaxTryNum int local 2
+	/declare TryNum int local 0
+	/declare castflag int local 0
+	/declare CondNo      int      local 0
+	
+	|/if (!${Bool[${Spell}]}) {
+	|	/varset CastThis ${Spell}
+	|	/goto :castnow
+	|}
+
+	/if (${Target.ID}!=${TarID} && ${Spawn[id ${TarID}].ID}) /call CastTarget ${TarID}
+	/for i 1 to ${${Array}.Size}
+		/varset CastThis ${${Array}[${i}].Arg[1,|]}
+		
+		|/echo ${CastThis} on ${TarID} from NewCast
+		/if (${Spawn[${TarID}].Type.Equal[Corpse]} || !${Spawn[${TarID}].ID}) {
+			/if (${DebugCombat}) /echo CombatCast: Return from CombatCast cause my target is a corpse or dead or DPSPaused ${DPSPaused}. \agLine#: ${Macro.CurLine}
+			/return
+		}
+		/if (${MezOn}) {
+			/varset MezBroke 0
+			/doevents MezBroke
+			/if (!${MezBroke}) {
+				/varset GoMByPass 1
+				/call DoMezStuff CombatCast
+				/varset GoMByPass 0
+			}
+		}
+		/if (${ConOn} && ${DPS[${i}].Find[|cond]}) {
+			/varset CondNo ${DPS[${i}].Mid[${Math.Calc[${DPS[${i}].Find[|cond]}+5]},3]}
+		} else {
+			/varset CondNo 0
+		}
+		
+		/if (!${Bool[${CastThis}]}) /return 
+		
+		/if (${CondNo}==0 || (${CondNo} && ${If[${Cond[${CondNo}]},1,0]})) {
+			:castnow
+			/if (${CastThis.Find[command:]}) {
+				/varset castflag 1
+				/varset MashThisArg3 ${${Array}[${i}].Arg[3,|]}
+				/varset MashThisArg4 ${${Array}[${i}].Arg[4,|]}
+				/if (${Bool[${MashThisArg4}]}) {
+					/docommand /${MashThisArg3} ${MashThisArg4}
+				} else {
+					/docommand /${MashThisArg3}
+				}
+				
+			} else /if (${CastThis.Find[script]}) {
+				/varset castflag 1
+				/call script_${Me.Class.ShortName}
+				/if (${DebugFramework}) /echo ${CastThis} Script ${TarID} from NewCast
+			} else /if (${FindItem[=${CastThis}].ID} && ${Me.ItemReady[${CastThis}]}) {
+				/varset castflag 1
+				/useitem "${CastThis}"
+				/call CastWait "${CastThis}"
+				/call DoCastingEvents
+				/varset CastResult ${castReturn}
+				/if (!${Me.ItemReady[${CastThis}]}) /varset CastResult CAST_SUCCESS
+				/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]}) {
+					/if (${DebugFramework}) /echo ## Mashing >> ${CastThis} << on ${TarID} from ${Array}
+					/if (${DebugFramework}) /echo ${CastResult} Returning
+					/return ${CastResult}
+				}
+			} else /if (${Me.AltAbility[${CastThis}]} && ${Me.AltAbilityReady[${CastThis}]} && ${Me.AltAbility[${CastThis}].Type}!=5 && ${CastThis.NotEqual[twincast]})  { 
+				/varset castflag 1
+				/alt act ${Me.AltAbility[${CastThis}].ID}
+				/call CastWait "${CastThis}"
+				/if (${Me.AltAbilityReady[${CastThis}]}) {
+					/varset CastResult CAST_RECOVER
+				} else {
+					/varset CastResult CAST_SUCCESS
+				}
+				/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]}) {
+					/if (${DebugFramework}) /echo ## Mashing >> ${CastThis} << on ${TarID} from ${Array}
+					/if (${DebugFramework}) /echo ${CastResult} Returning
+					/return ${CastResult}
+				}
+			} else /if (${Me.CombatAbility[${CastThis}]} && !${Me.CombatAbilityTimer[${CastThis}]} && ${Me.CombatAbilityReady[${CastThis}]} && ${Spell[${CastThis}].EnduranceCost}<${Me.Endurance}) {
+				/varset castflag 1
+				/disc ${Me.CombatAbility[${Me.CombatAbility[${CastThis}]}].ID}
+				/call CastWait "${CastThis}"
+				/call DoCastingEvents
+				/varset CastResult ${castReturn}
+				/if (!${Me.CombatAbility[${CastThis}]}) /varset CastResult CAST_SUCCESS
+				/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]}) {
+					/if (${DebugFramework}) /echo ## Mashing >> ${CastThis} << on ${TarID} from ${Array}
+					/if (${DebugFramework}) /echo ${CastResult} Returning
+					/return ${CastResult}
+				}
+				
+			} else /if (${Me.Ability[${CastThis}]} && ${Me.AbilityReady[${CastThis}]}) {
+				/varset castflag 1
+				/doability "${CastThis}"
+				/call CastWait "${CastThis}"
+				/call DoCastingEvents
+				/varset CastResult ${castReturn}
+				/if (!${Me.AbilityReady[${CastThis}]}) /varset CastResult CAST_SUCCESS
+				/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]}) {
+					/if (${DebugFramework}) /echo ## Mashing >> ${CastThis} << on ${TarID} from ${Array}
+					/if (${DebugFramework}) /echo ${CastResult} Returning
+					/return ${CastResult}
+				}
+				
+				
+			} else /if (${Me.SpellReady[${CastThis}]} && ${Me.Book[${CastThis}]} && ${Spell[${CastThis}].Mana}<${Me.CurrentMana}) {
+				/varset castflag 1
+				/if (${Me.Class.ShortName.Equal[BRD]}) {
+					/call CastBard "${CastThis}" ${TarID} CastSpell
+					/return ${CastResult}  
+				} else /if (!${Target.CanSplashLand} && ${Spell[${CastThis}].TargetType.Equal[Free Target]}) {
+				   /if (${DebugFramework}) /echo Splash Spell will not cast at targets location. Skipping ${CastThis}
+				   /return
+				} else /if (${Me.Gem[${CastThis}]}) {
+					
+					:Retry_Cast
+						/if (${Me.GemTimer[${CastThis}]}==0) {
+							/cast "${CastThis}"
+							/call DoCastingEvents 
+							/varcalc TryNum ${TryNum}+1
+							/while (${Me.Casting.ID} && ${CastResult.NotEqual[CAST_CANCELLED]}) {
+								/if (${CastingInterruptOn}) {
+									/if (${Array.Equal[Heals]}) {
+									   /call CastInteruptHeals "${CastThis}"
+									} else /if (${Select[${Array},dps,gom,burn]}>0) {
+									   /call CastInteruptDPS "${CastThis}"
+									} else /if (${Select[${Array},buffs,buffs-nomem]}>0) {
+									   /call CastInteruptBuffs "${CastThis}"
+									}
+								}
+								/delay 1
+							}
+							/call CastWait "${CastThis}"
+							/call DoCastingEvents 
+							
+							/if (${Array.Equal[Pull]} && ${PullAggroTargetID}) /varset CastResult CAST_SUCCESS
+							/if (${CastResult.NotEqual[CAST_CANCELLED]} || ${CastResult.NotEqual[CAST_NO_RESULT]}) /varset CastResult ${castReturn}  
+						}
+						/if (!${Me.SpellReady[${CastThis}]}) /varset CastResult CAST_SUCCESS
+						
+						/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]}) {
+							/if (${DebugFramework}) /echo ${CastResult} Returning ${CastThis} from ${Array}
+							/return ${CastResult}
+						}
+					/if (${TryNum}<=${MaxTryNum} && (${CastResult.Equal[CAST_RESTART]} || ${CastResult.Equal[CAST_STUNNED]} || ${CastResult.Equal[CAST_FIZZLE]} || ${CastResult.Equal[CAST_COLLAPSE]} || ${CastResult.Equal[CAST_INTERRUPTED]} || ${CastResult.Equal[CAST_RESISTED]})) /goto :Retry_Cast
+				} else {
+					/if (${DebugFramework}) /echo Skip Casting ${CastThis}. Spell Not Memed.
+					/varset CastResult CAST_NO_RESULT
+				}
+				
+			} else /if (!${FindItem[=${CastThis}].ID} && ${Me.Book[${CastThis}]} && !${Me.Gem[${CastThis}]} && ((${Attacking} && ${MainAssist.Equal[${Me}]}) || (${HealsOn} && ${AggroTargetID} && ${Array.NotEqual[Heal]} && !${Me.Mount.ID}))) {
+				/varset castflag 1
+				/call CastMem "c" ${Array}
+				/if (${Macro.Return.NotEqual[notready]} && ${Me.Gem[${CastThis}]}!=0) {
+					/goto :Retry_Cast
+				}
+				/call CastWait "${CastThis}"
+				/call DoCastingEvents
+				/varset CastResult ${castReturn}
+			
+				/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]}) {
+					/if (${DebugFramework}) /echo ${CastResult} Returning ${CastThis} from ${Array}
+					/return ${CastResult}
+				}
+			} else {
+				|/echo in the cast garbage bin ${CastThis}
+			}
+			|/call CastWait "${CastThis}"
+			|/while (${Me.Casting.ID}) {
+			|	/delay 5
+			|}
+			
+			|/if (${Me.Casting.ID}) {
+			|	/while (${Me.Casting.ID}) {
+			|		/delay 1
+			|	}
+			|}
+			|/call DoCastingEvents
+			|/varset CastResult ${castReturn}
+			/if (${castflag} && (!${Me.AltAbilityReady[${CastThis}]} || !${Me.SpellReady[${CastThis}]} || !${Me.AbilityReady[${CastThis}]} || !${Me.CombatAbilityReady[${CastThis}]} || !${Me.ItemReady[${CastThis}]} )) {
+				/varset CastResult CAST_SUCCESS
+			}
+			|/if (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_NOTHOLD]}) {
+			|	/echo cycle:${i} ${CastResult} Returning ${CastThis} from ${Array} Target:${Spawn[id ${TarID}].CleanName}
+			|	/return 
+			|}
+			
+		}
+		/varset castflag 0
+	/next i
+	
+/return ${CastResult}
+|----------------------------------------------------------------------------
+|- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
+|---------------------------------------------------------------------------- 
 
 	Sub FindTarget(int callfrom)
 		/declare TempTargetID int local
@@ -433,12 +619,11 @@
 			}
 			/if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID}
 			/if (!${Me.Combat} && ${DPSOn} && ${MeleeOn} && ${Target.PctHPs}<=${AssistAt} && ${Target.PctHPs}>0 && ${Target.ID}==${MyTargetID} && ${Spawn[id ${MyTargetID} ${SpawnSearchType} radius ${MeleeDistance}].ID}) {
-					/if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID}
-				}
-				/squelch /attack on
-				/delay 10 ${Me.Combat}
-				/if (${Cursor.ID}) /call CheckCursor Combat
-				
+				/if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID}
+			}
+			/squelch /attack on
+			/delay 10 ${Me.Combat}
+			/if (${Cursor.ID}) /call CheckCursor Combat
 		}
 		/varset MercAssisting 0
 		/varset CombatStart 1
@@ -460,11 +645,12 @@
 		|COMBAT LOOP
 		
 		/while (1) {
-			/echo in combatwhile
+			/if (${DebugFramework}) /echo in combatwhile
 			/varcalc cyclecount (${cyclecount})+1
 			/doevents
 			
 			/if (${IAmDead}) {
+				/if (${DebugFramework}) /echo Apparently I'm dead, so I'm returning from combat
 				/varset MyTargetID 0
 				/return
 			}
@@ -531,3 +717,4 @@
 			}
 		/varset tmpHealOverride 99.99
 	/return
+	

@@ -1,5 +1,5 @@
 |***
- *	Quests.inc
+ *	Manual.inc
  *	Framework Quest Subs Include
  *
  *	

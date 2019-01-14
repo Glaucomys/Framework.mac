@@ -1,0 +1,424 @@
+#Chat group
+#Chat tell
+#Chat raid
+
+#warning
+#turbo 120
+|#include FRAMEWORK2\quests.inc
+|#include FRAMEWORK\ninjadvloot.inc
+|#include FRAMEWORK\raid.inc
+#include FRAMEWORK2\commons.inc
+#include FRAMEWORK2\ber.inc
+#include FRAMEWORK2\brd.inc
+#include FRAMEWORK2\bst.inc
+#include FRAMEWORK2\clr.inc
+#include FRAMEWORK2\dru.inc
+#include FRAMEWORK2\enc.inc
+#include FRAMEWORK2\mag.inc
+#include FRAMEWORK2\mnk.inc
+#include FRAMEWORK2\nec.inc
+#include FRAMEWORK2\pal.inc
+#include FRAMEWORK2\rng.inc
+#include FRAMEWORK2\rog.inc
+#include FRAMEWORK2\shd.inc
+#include FRAMEWORK2\shm.inc
+#include FRAMEWORK2\war.inc
+#include FRAMEWORK2\wiz.inc
+|#include FRAMEWORK2\Manual.inc
+
+#warning
+#bind SetVarInt		/setvarint
+#bind CmdList       /ihchelp
+#Event NotOnTarget	"#*#You cannot see your target#*#"
+#Event NotOnTarget	"#*#Your target is too far away#*#"
+#Event Buff 			"Your #1# spell has worn off of #*#."
+
+
+Sub Main
+	/delay ${Math.Rand[10]}
+	
+	/doevents flush
+	/declare IniLevel           	int      outer
+	/declare Role       			string outer Assist 
+	/varset Role ${Param0}
+	
+	/if (${Me.Level}>=110) {
+		/varset IniLevel 110
+	} /else /if (${Me.Level} >= 105) {
+		/varset IniLevel 105
+	} else /if (${Me.Level}>=100) {
+		/varset IniLevel 100
+	} else /if (${Me.Level}>=95) {
+		/varset IniLevel 95
+	} else /if (${Me.Level}>=90) {
+		/varset IniLevel 90
+	} else /if (${Me.Level}>=85) {
+		/varset IniLevel 85
+	} else /if (${Me.Level}>=80) {
+		/varset IniLevel 80
+	} else /if (${Me.Level}>=75) {
+		/varset IniLevel 75
+	} else /if (${Me.Level}>=70) {
+		/varset IniLevel 70
+	} else /if (${Me.Level}>=55) {
+		/varset IniLevel 55
+	} else /if (${Me.Level}>=50) {
+		/varset IniLevel 50
+	} else /if (${Me.Level}>=40) {
+		/varset IniLevel 40
+	} else /if (${Me.Level}>=30) {
+		/varset IniLevel 30
+	} else /if (${Me.Level}>=20) {
+		/varset IniLevel 20
+	}
+
+	/declare MacroName              string      outer       Framework2
+    /declare MacroVer               string      outer       1.0
+	/declare IniFileName            string      outer       FRAMEWORK2/${MacroName}_${Me.Class.ShortName}_${IniLevel}_${Role}.ini         
+    /declare InfoFileName           string      outer       FRAMEWORK2/${MacroName}_Info.ini
+	/declare ConditionsFileName     string      outer 
+	/declare ZoneName 				string 		outer 		${Zone.Name}
+    /declare IniNavFile 			string 		outer 		FRAMEWORK2/Nav.ini
+	
+	|- Load Inis
+
+		/call LoadIni General FollowToonName 		string NULL
+		/call LoadIni General AssistRange			int 100
+		/call LoadIni General AutoAssistAt			int 98
+		/call LoadIni General AutoCampHold			int 1
+		/call LoadIni General AutoCampRadius		int 30
+		/call LoadIni General BurnAlways 			int 0
+		/call LoadIni General BurnMobCount 			int 3
+		/call LoadIni General DoMed				 	int 1
+		/call LoadIni General EndMedPct				int 80
+		/call LoadIni General MedPct			 	int 80
+		/call LoadIni General InstantRelease 		int 0
+		/call LoadIni General UseFellowship 		int 0
+		/call LoadIni General UseSmartAssist		int 1
+		/call LoadIni General UseEventLogic			int 0
+		/call LoadIni General ConditionsOn          int 2
+			
+		/if (${ConditionsOn}) {
+			/if (${ConditionsOn}==1) {
+				/varset ConditionsFileName ${IniFileName.Replace[.ini,]}_Conditions.ini
+			} else {
+				/varset ConditionsFileName ${IniFileName}
+			}
+		}
+		/call LoadIni HUD UseHud					int 1
+		/call LoadIni HUD ShowDeluxeHud				int 1
+		/call LoadIni HUD ShowDriverHud				int 1
+		/call LoadIni HUD ShowMacStatusHud			int 1
+
+| ************************* Buffs ****************************************|
+		/call LoadIni Buffs BuffsOn                 int         0
+		/call LoadIni Buffs BuffsCOn                int         0          NULL         FALSE          "${ConditionsFileName}"
+		/call LoadIni Buffs BuffsSize               int         20
+		/declare Buffs[${BuffsSize}]                string      outer
+		/declare BuffsCond[${BuffsSize}]            string      outer      TRUE
+		/call LoadIni Buffs Buffs                   string      NULL       Buffs        BuffsCond      "${IniFileName}" "${ConditionsFileName}"
+		/call LoadIni Buffs RebuffOn                int         1
+		/call LoadIni Buffs CheckBuffsTimer         int         10
+		/call LoadIni Buffs PowerSource             string      NULL
+
+| ************************* Heals ****************************************|
+		/call LoadIni Heals Xtarheal_ON								int	 0
+		/call LoadIni Heals grpheal									int	 75
+		/call LoadIni Heals PetPoint 								int  80	
+		/call LoadIni Heals CLRPoint		 							int  80
+		/call LoadIni Heals DRUPoint 								int  70
+		/call LoadIni Heals SHMPoint 								int  60
+		/call LoadIni Heals WIZPoint 								int  75
+		/call LoadIni Heals MAGPoint 								int  75
+		/call LoadIni Heals ENCPoint 								int  80
+		/call LoadIni Heals NECPoint 								int  75
+		/call LoadIni Heals WARPoint 								int  70
+		/call LoadIni Heals MNKPoint 								int  60
+		/call LoadIni Heals ROGPoint 								int  60
+		/call LoadIni Heals RNGPoint 								int  90
+		/call LoadIni Heals BSTPoint 								int  70
+		/call LoadIni Heals SHDPoint 								int  90
+		/call LoadIni Heals BRDPoint 								int  65
+		/call LoadIni Heals BERPoint 								int  70
+		/call LoadIni Heals PALPoint 								int  90
+		/if (${Select[${Me.Class.ShortName},CLR,SHM,DRU,PAL]})  {
+			/call LoadIni Heals HealsSize           int         15
+		} else {
+			/call LoadIni Heals HealsSize           int         5
+		}
+		/declare Heals[${HealsSize}]                string      outer
+		/declare HealsCond[${HealsSize}]            string      outer       TRUE
+		/call LoadIni Heals Heals                   string      NULL        Heals         HealsCond      "${IniFileName}" ${ConditionsFileName} 
+
+| ************************* GHeals ****************************************|
+		/if (${Select[${Me.Class.ShortName},CLR,SHM,DRU,PAL]})  {
+			/call LoadIni GHeals GHealsSize           int         5
+		} else {
+			/call LoadIni GHeals GHealsSize           int         2
+		}
+		/declare GHeals[${GHealsSize}]                string      outer
+		/declare GHealsCond[${GHealsSize}]            string      outer       TRUE
+		/call LoadIni GHeals GHeals                   string      NULL        GHeals         GHealsCond      "${IniFileName}" ${ConditionsFileName} 
+
+| ************************* Combat ****************************************|
+		/call LoadIni Combat DoAutoTarget			int 1
+		/call LoadIni Combat DoAutoEngage			int 1
+		/call LoadIni Combat Epic 		string NULL
+		
+| ************************* DPS ******************************************|
+    /call LoadIni DPS DPSOn                     int         0
+    /call LoadIni DPS DPSCOn                    int         0           NULL        FALSE           "${ConditionsFileName}"
+    /call LoadIni DPS DPSSize                   int         20
+	/call LoadIni DPS AEOn                      int         0
+	/call LoadIni DPS RangeOnly                 int         0
+    /declare DPS[${DPSSize}]                    string      outer
+    /declare DPSCond[${DPSSize}]                string      outer       TRUE
+    |string       sectionName, varName,         varType,    varValue,   varArray,   varArray2,     FileName,        FileName2
+    /call LoadIni DPS DPS                       string      NULL        DPS         DPSCond        "${IniFileName}" "${ConditionsFileName}"
+    /call LoadIni DPS DebuffAllOn               int         0
+| ************************* Aggro ******************************************|
+    /call LoadIni Aggro AggroOn                 int         0
+    /if (${Select[${Me.Class.ShortName},SHD,WAR,PAL]})  {
+        /call LoadIni Aggro AggroSize           int         10
+    } else {
+        /call LoadIni Aggro AggroSize           int         5
+    }
+    /declare Aggro[${AggroSize}]                string      outer
+    /declare AggroCond[${AggroSize}]            string      outer       TRUE
+    /call LoadIni Aggro Aggro                   string      NULL        Aggro       AggroCond      "${IniFileName}" "${ConditionsFileName}"
+
+| ************************* Pet *****************************************|
+    /if (${Select[${Me.Class.ShortName},DRU,SHM,BST,ENC,MAG,NEC,SHD]}) {
+        /call LoadIni Pet PetOn                 int         0
+        /call LoadIni Pet PetSpell              string      "YourPetSpell"
+        /if (${Select[${Me.Class.ShortName},BST,MAG,NEC]})  {
+            /call LoadIni Pet PetFocus          string      "NULL"
+        } else {
+            /declare PetFocus                   string      outer   NULL
+        }
+        /call LoadIni Pet PetShrinkOn           int         0
+        /call LoadIni Pet PetShrinkSpell        string      "Tiny Companion"
+        /call LoadIni Pet PetBuffsOn            int         0
+        /call LoadIni Pet PetBuffsSize          int         8
+        /declare PetBuffs[${PetBuffsSize}]      string      outer
+        /call LoadIni Pet PetBuffs              string      NULL    PetBuffs
+        /call LoadIni Pet PetCombatOn           int         1
+        /call LoadIni Pet PetAssistAt           int         95          
+        /declare PetToysDone                    int         outer   0
+        /call LoadIni Pet PetToysSize           int         6
+        /declare PetToys[${PetToysSize}]        string      outer
+        /if (${Select[${Me.Class.ShortName},MAG]}) {
+            /call LoadIni Pet PetToysOn         int         0
+            /call LoadIni Pet PetToys           string      NULL    PetToys
+            /call LoadIni Pet PetToysGave       string      NULL
+        } else {
+            /declare PetToysGave                string      outer   NULL
+            /declare PetToysOn                  int         outer   0
+        }
+        /call LoadIni Pet PetBreakMezSpell      string      NULL
+        /call LoadIni Pet PetRampPullWait       int         0  
+        /call LoadIni Pet PetSuspend            int         0
+        /call LoadIni Pet MoveWhenHit           int         0
+        /call LoadIni Pet PetHoldOn             int         1
+        /declare PetHold                        string     outer
+        /if (${Me.AltAbility[Pet Discipline]}>=1) {
+            /if (${Me.AltAbility[Pet Discipline]}<=5)      /varset PetHold hold
+            /if (${Me.AltAbility[Pet Discipline]}>=6)      /varset PetHold ghold
+        }
+        /call LoadIni Pet PetForceHealOnMed     int         0
+    } else {
+        /declare PetForceHealOnMed              int         outer   0
+        /declare PetOn                          int         outer   0
+        /declare PetAssistAt                    int         outer   0
+        /declare PetCombatOn                    int         outer   0
+        /declare PetRampPullWait                int         outer   0
+        /declare PetHoldOn                      int         outer   0
+        /declare PetHold                        string      outer   0
+    }
+| ************************* Mez *****************************************|
+    /if (${Select[${Me.Class.ShortName},BRD,ENC,NEC]}) {
+        /call LoadIni Mez MezOn                 int         0
+        /call LoadIni Mez MezRadius             int         50
+        /call LoadIni Mez MezMinLevel           int         "Min Mez Spell Level"
+        /call LoadIni Mez MezMaxLevel           int         "Max Mez Spell Level"
+        /call LoadIni Mez MezStopHPs            int         80
+        /call LoadIni Mez MezSpell              string      "Your Mez Spell"
+        | necros can't AE mez
+        /if (${Select[${Me.Class.ShortName},BRD,ENC]}) {
+            /call LoadIni Mez MezAESpell        string      "Your AE Mez Spell|0"
+            /declare MezAECount                 int         outer   ${MezAESpell.Arg[2,|]}
+            /varset MezAESpell                  ${MezAESpell.Arg[1,|]}
+        }
+        /declare MezCount[13]                   int         outer 0
+        /declare MezAEClosest                   int         outer 0
+    } else {
+        /declare MezOn                          int         outer 0
+    }
+        | This loads and declares the MezImmune var
+     |   /call LoadIni "${ZoneName}" MezImmune   string      "List up to 10 mobs. Use full names i.e. a green snake,a blue tiger,a wide eye ooze or NULL" NULL False ${InfoFileName}
+
+| ************************* Burn ****************************************|
+    /call LoadIni Burn  BurnCOn                 int         0           Null          FALSE            "${ConditionsFileName}"
+    /call LoadIni Burn  BurnSize                int         15
+    /declare Burn[${BurnSize}]                  string      outer
+    /declare BurnCond[${BurnSize}]              string      outer   TRUE
+    /call LoadIni Burn  BurnText                string      "Decepticons Attack"
+    /call LoadIni Burn  BurnAllNamed            int         0
+    /call LoadIni Burn  Burn                    string      NULL        Burn          BurnCond        "${IniFileName}" "${ConditionsFileName}"
+    /call LoadIni Burn  UseTribute              int         0
+| ************************* Pull ****************************************|
+    /call LoadIni Pull PullWith                 string      "Melee"
+    /call LoadIni Pull MaxRadius                int         350
+    /call LoadIni Pull MaxZRange                int         50
+    |/call LoadIni "${ZoneName}" MobsToPull      string      "List up to 25 mobs. Use full names i.e. a green snake,a blue tiger,a wide eye ooze or ALL for all mobs" NULL False ${InfoFileName}
+    |/call LoadIni "${ZoneName}" MobsToIgnore    string      "List up to 25 mobs. Use full names i.e. a green snake,a blue tiger,a wide eye ooze or NULL" NULL False ${InfoFileName}
+    |/call LoadIni "${ZoneName}" MobsToBurn      string      "List up to 10 mobs. Use full names i.e. Beget Cube,Helias,Raze or NULL" Null False ${InfoFileName}
+
+    /call LoadIni Pull ChainPull                int         0
+    /call LoadIni Pull ChainPullHP              int         90
+	
+	/if (${AutoCampHold}) /moveto dist 2
+	/stick set breakontarget on	
+
+	
+|- PULLING STUFF
+
+/declare MaxPathLength int outer 1000                                     | Maximium path length to find a spawn - i.e the maximium range the bard will go
+   | The SpawnSearch variables
+/declare SpawnList string outer NPC noalert 1 radius 2000 targetable     
+/declare MaxPullMobs int outer 2                                          | Maximium amount of mobs to pull
+/declare MaxPullAttempts int outer 3                                      | No of pull attempts b4 the mob is added to the Alert list (i.e will no longer attempt to pull it)
+/declare PullMode bool outer false                                        | Pulls on or off
+  
+  /declare CampX int outer ${Me.X}
+  /declare CampY int outer ${Me.Y}
+  /declare CampZ int outer ${Me.FloorZ}
+  /declare CampCheckTimer timer outer 0
+  /declare CampCheckFlag int outer 0
+  /declare CampCheckResponse timer outer 0
+
+  /declare ZRad int outer 80 
+
+  /declare PriorityPullList[10,20] string outer
+  /declare ZoneAlertList[80] string outer
+  /declare MaxZoneAlerts int outer
+  /declare CurrentPullList int outer 1
+  /declare MaxLists int outer
+  /declare MaxListNum int outer
+  /declare MelodySong string outer
+  /declare MaxMezzImmune int outer 0
+  /declare ArcAngle int outer 20
+  /declare NamedArcAngle int outer 80
+  /declare PreviousID int outer 0
+  /declare NoAttempts int outer 0
+
+  /declare RoamerMobID int outer 0
+  /declare RoamerMobDistance float outer 0
+
+  /declare SillyMob string outer briarweb
+  /if (${Defined[Param1]}) /varset CurrentPullList ${Param0}
+  /if (${Defined[Param2]}) /varset ArcAngle ${Param1}
+  /if (${Defined[Param3]}) /varset NamedArcAngle ${Param2}
+  
+  /call LoadAlertList
+  /call LoadPullPriorityList
+  
+|-Debug Switches
+	|/declare DEBUGLogging 			int outer 0
+	|/if (${DEBUGLogging}) {
+    | /mlog on
+	| /delay 5
+	| /log on
+	|}
+	|/call WarSetup	
+	|/call VarSetup
+	|/call AliasSetup
+	|/call CheckOptions
+	|/call IHCHud
+	|/call SetupDiscs
+	|/call SetControlToon
+|-Cursor ID
+	/if (${Cursor.ID}) {
+		/echo Sending Item on Cursor to Bag
+		/autoinventory
+	}
+	/rez spawn off
+	/call WelcomeMsg
+	/if (${assistid}==${Me.ID}) {
+		/echo \aw I am Main Assist
+	} else {
+		/echo \aw Assisting \ay >> \ag ${assistname} \ay << \aw at \ag ${AutoAssistAt}%
+	}
+	/if (${DEBUGLogging}) /echo \awDEBUG Logging is :\ag ON
+		/if (${UseEventLogic}) {
+		/call ZoneEventChk
+	}
+ :mainloop
+	/if (${Me.Zoning}) /call Zoning
+  	/if (${changetoini}==1) /call INIChanges
+	/if (${Me.Hovering}) /call DeathSub
+	/if (${Cursor.ID} && ${DoAutoBag}) /call BagModRods
+	/call IDUpdateCheck
+	/if (${Role.Equal[Tank]} && (${Me.XTarget[1].ID} || ${SpawnCount[npc radius ${AssistRange} zradius 15 targetable playerstate 4]}) && ${DoAutoTarget} && !${BackOffFlag} ) /call FindTarget
+	/if (${Role.NotEqual[Tank]} && ${Me.XTarget[1].ID} && !${BackOffFlag} && ${DoAutoTarget}) /call FindTarget
+	/if ((${KillTargetID} || ${autotargetid}) && ${Spawn[ID ${KillTargetID}].Distance}<${AssistRange} && ${Spawn[ID ${KillTargetID}].PctHPs}<=${AutoAssistAt} && ${Target.ID}==${autotargetid} && ${DoAutoEngage} && !${BackOffFlag}) /call EngageTarget
+	/call _${Me.Class.ShortName}
+
+	/if (!${Me.Combat} && !${Me.XTarget[1].ID} && ${DoBuffs} && !${KillTargetID}) /call CheckBuffs
+	/if (${Spawn[${FollowToonName}].ID} && !${MoveTo.Moving} && ${Stick.Status.Equal[OFF]}) /call FollowToon
+	/if ((!${Me.XTarget[1].ID} || ${SpawnCount[npc radius ${AssistRange} zradius 15 targetable playerstate 4]}) && !${KillTargetID}) /call AutoCampCheck
+	/if (${DoMed}) /call AutoMed
+	/call CastMana MainLoop
+	|/if (${PetOn}) /call DoPetStuff
+	|/if (${PetOn}) /call CheckPetBuffs
+	
+	/if (${UseEventLogic} && ${EventSetupFlag}) {
+		/call EventLogic${EventSetupFlag}
+	}
+	/if (((!${Spawn[targetable id ${KillTargetID}].ID}) || ${Spawn[corpse id ${KillTargetID}].ID}) && ${KillTargetID}!=0) {
+		/varset KillTargetID 0
+		/varset SpawnSearchType npc
+	}
+	/doevents
+	/if (!${Me.CombatState.Equal[COMBAT]} && ${Me.PctMana}>8 && ${Me.PctHPs}>75 && !${Me.Snared.ID} && ${PullMode} && (!${Me.XTarget} || (${Me.XTarget[1].PctHPs}==100 && ${Me.XTarget}<2))) /call PullPriorityMob 240
+ /goto :mainloop
+/return
+ :OnExit
+	/if (${DEBUGLogging}) {
+     /mlog off
+	 /delay 5
+	 /log off
+	}
+	/defaulthud
+	/end
+ /return
+
+ /if ((${Target.ID}!=${autotargetid} || !${Target.ID}) && (${Me.XTarget[1].ID} || ${SpawnCount[npc radius ${AssistRange} zradius 15 targetable playerstate 4]}) && ${DoAutoTarget} && !${BackOffFlag}) /call FindTarget
+	
+ 
+  :mainloop
+	/if (${changetoini}==1) /call INIChanges
+	/if (${Me.Zoning}) /call Zoning
+	/if (${Me.Hovering}) /call DeathSub
+	/call IDUpdateCheck
+	/if ((${Me.XTarget[1].ID} || (${Group.MainAssist.ID} && ${Group.MainAssist.ID}!=${Me.ID} && ${Target.ID}!=${Me.GroupAssistTarget.ID}) || ${SpawnCount[npc radius ${AssistRange} zradius 15 targetable playerstate 4]}) && !${BackOffFlag} && ${DoAutoTarget}) /call FindTarget
+	/if ((${Me.XTarget[1].ID} || ${KillTargetID}) && ${Target.ID}==${autotargetid} && ${Target.Distance}<${AssistRange} && (!${Target.Mezzed.ID} || ${AllowMezBreak}) && !${BackOffFlag}) /call AANDisc
+	/if ((${Me.XTarget[1].ID} || ${KillTargetID}) && ${Target.PctHPs}<=${AutoAssistAt} && ${Target.ID}==${autotargetid} && ${Target.Distance}<${AssistRange} && (!${Target.Mezzed.ID} || ${AllowMezBreak}) && !${BackOffFlag} && ${DoAutoEngage}) /call EngageTarget
+	/if ((${Me.XTarget[1].ID} || ${KillTargetID}) && ${Target.PctHPs}<=${AutoAssistAt} && ${Target.ID}==${autotargetid} && ${Target.Distance}<${AssistRange} && ${Ok2Assist} && (!${Target.Mezzed.ID} || ${AllowMezBreak}) && !${BackOffFlag}) /call Combatdps
+	/if (!${Me.Combat} && !${Me.XTarget[1].ID} && !${KillTargetID}) /call DowntimeDiscs
+	/if (${Spawn[=${FollowToonName}].ID} && !${MoveTo.Moving} && ${Stick.Status.Equal[OFF]} && (!${Me.Casting.ID}) && (!${Me.XTarget[1].ID} || ${Spawn[id ${assistid}].Distance}>${AssistRange} || (!${Spawn[id ${assistid}].LineOfSight}))) /call FollowToon
+	/if (${Spawn[=${FollowToonName}].ID} && (${Me.Casting.ID} || ${Me.XTarget[1].ID}) && ${AdvPath.Following}) /squelch /afollow off
+	/if (!${Me.XTarget[1].ID}&& !${KillTargetID}) /call AutoCampCheck
+	/if (${DoMed}) /call AutoMed
+	/if (${UseEventLogic} && ${EventSetupFlag}) {
+		/call EventLogic${EventSetupFlag}
+	}
+	/if (((!${Spawn[targetable id ${KillTargetID}].ID}) || ${Spawn[corpse id ${KillTargetID}].ID}) && ${KillTargetID}!=0) {
+		/varset KillTargetID 0
+		/varset SpawnSearchType npc
+	}
+	/doevents
+
+ 
+ if ((${Me.XTarget[1].ID} || ${SpawnCount[npc radius ${AssistRange} zradius 15 targetable playerstate 4]} || ${KillTargetID}) && !${BackOffFlag}) /call CheckAggro
+	/if ((${Me.XTarget[1].ID} || ${SpawnCount[npc radius ${AssistRange} zradius 15 targetable playerstate 4]} || ${KillTargetID}) && !${BackOffFlag}) /call DoCombat
