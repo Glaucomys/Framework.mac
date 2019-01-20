@@ -20,7 +20,8 @@ Sub _wiz
 	|} else 
 	/if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
 		/if (${DebugFramework}) /echo in heal
-		/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
+		/call NewCast "${Me}" "Heals"
+		|/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
 	} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
 		|/call CombatCast
 		|/call newcombatcast

@@ -599,6 +599,7 @@ Sub NewCast(TarID, Array, Spell)
 		
 		/if (${Stick.Status.Equal[ON]}) /stick off
 		/if (${IAmDead} && ${CampZone}==${Zone.ID} && (${Me.Buff[Resurrection Sickness].ID} || ${SpawnCount[pccorpse ${Me}]}==0) ) /varset IAmDead 0
+		/if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID} 2
 		/if (${DPSOn} && ${MeleeOn} && !${AutoFireOn}) {
 			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
 				/squelch /target id ${MyTargetID}
@@ -668,11 +669,12 @@ Sub NewCast(TarID, Array, Spell)
 			/call _${Me.Class.ShortName}
 			|/echo past class sub call
 			/if (!${UseMQ2Melee} && ${Spawn[${MyTargetID}].Distance}>${Spawn[${MyTargetID}].MaxRangeTo} && ${MeleeOn} && !${Stick.Active}) /moveto id ${MyTargetID} mdist ${Spawn[${MyTargetID}].MaxRangeTo}
-			|/if (${CombatStart} && ${AutoFireOn} && ${Target.ID}==${MyTargetID} && !${Bool[${Target.Mezzed.ID}]}) /range
+			/if (${CombatStart} && ${AutoFireOn} && ${Target.ID}==${MyTargetID} && !${Bool[${Target.Mezzed.ID}]}) /range
 			
 			/if (!${NamedCheck} && (${BurnAllNamed} || ${GMailEvents.Find[named]})) /call NamedWatch 0
 			/if (${checkmana} && ${Me.PctMana}<65) /call CastMana combat
-			|/call WriteDebuffs
+			/call WriteDebuffs
+			/if (${CuresOn}) /call CheckCures
 			
 			/if (${Role.Equal[puller]} && ${ChainPull}) {
 				/if (${Math.Distance[${CampYLoc},${CampXLoc}:${Spawn[=${MainAssist}].Y},${Spawn[=${MainAssist}].X}]}<=75) {

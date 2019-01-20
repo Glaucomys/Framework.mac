@@ -12,16 +12,22 @@
  *  NOTE:
  ***|
 Sub _mag
-
 	/if (${DebugFramework}) /echo in class sub
-   	 /if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat}) {
+    /if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat}) {
 		/call CombatPet
 	}
-	/if ((${Spawn[${WorstHurt[both,1,200,TRUE]}].Type.Equal[Pet]} && ${Spawn[${WorstHurt[both,1,200,TRUE]}].Class.ShortName.NotEqual[Corpse]} && ${Spawn[${WorstHurt[both,1,200,TRUE]}].PctHPs} <= ${Math.Calc[${PetPoint}*.${tmpHealOverride}]})) {
+	/if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
+		/if (${DebugFramework}) /echo in heal
+		/call NewCast "${Me}" "Heals"
+		|/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
+	} else /if ((${Spawn[${WorstHurt[both,1,200,TRUE]}].Type.Equal[Pet]} && ${Spawn[${WorstHurt[both,1,200,TRUE]}].Class.ShortName.NotEqual[Corpse]} && ${Spawn[${WorstHurt[both,1,200,TRUE]}].PctHPs} <= ${Math.Calc[${PetPoint}*.${tmpHealOverride}]})) {
+		
 		/call NewCast ${Spawn[${WorstHurt[both,1,200,TRUE]}].ID} "Heals"
+		|/call newSingleHeal "${Spawn[${WorstHurt[both,1,200,TRUE]}].CleanName}" "${Spawn[${WorstHurt[both,1,200,TRUE]}].Type}" ${Spawn[${WorstHurt[both,1,200,TRUE]}].PctHPs} 1 G
 	} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
 		/if (${DebugFramework}) /echo in combat
 		|/call CombatCast
+		|/call newcombatcast
 		/call NewCast ${MyTargetID} "DPS"
 	}
 /return
