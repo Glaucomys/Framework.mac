@@ -6,7 +6,7 @@ Sub _shd
 	/if (${Debug}) /echo _SK Enter Line#: ${Macro.CurLine}
 
 	
-	/if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
+	/if (${Select[${Role},tank,pettank,pullertank,pullerpettank,hunter,hunterpettank]} && ${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
 	    /varset ReturnToCamp 1
 		/call DoWeMove 1 CheckForCombat
 	    |/if (${Macro.IsTLO[Navigation]}) {
@@ -21,6 +21,7 @@ Sub _shd
 	    |}
 	  
 	}
+	
 	/if (${Me.CombatState.Equal[COMBAT]} && ${Select[${Me.Class.ShortName},WAR,PAL,SHD]} && ${CombatStart} && !${Me.ActiveDisc.ID} && (${Target.Named} || ${Me.XTarget}>1) && ${Target.Distance}<75) {
 		/if (${DebugFramework}) /echo defensive
 		/call SKDefense
@@ -35,6 +36,10 @@ Sub _shd
 		|/call newcombatcast
 		
 	}
+	/if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat}) {
+		/call CombatPet
+	}
+	
 /return 
 
 

@@ -41,8 +41,10 @@ sub script_bst
 		/alt act 1430
 		/alt act 1240
 	} else /if (${Me.CombatAbilityReady[${Spell[Ruaabri's Fury].RankName}]}) {
-		/disc ${Spell[Ruaabri's Fury].RankName}
-		/disc ${Spell[Savage Rancor].RankName}
+		/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Ruaabri's Fury].RankName}]}].ID}
+		/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Savage Rancor].RankName}]}].ID}
+		|/disc ${Spell[Ruaabri's Fury].RankName}
+		|/disc ${Spell[Savage Rancor].RankName}
 	} else /if (${Me.AltAbilityReady[Ferociousness]}) {
 		/alt act 966
 	} else /if (${Me.AltAbilityReady[Companion's Fury]}) {
