@@ -18,6 +18,14 @@
 		/if (${Me.CombatState.Equal[COMBAT]} && ${Me.AltAbilityReady[9403]}) /Echo Visage of Death
     /return
 	Sub SHD_checkbuffs
+	
+	!${Me.Buff[${Spell[Shroud of the Krellnakor].RankName}].ID} || 
+	!${Me.Buff[${Spell[Tylix's Horror].RankName}].ID} || 
+	!${Me.Buff[${Spell[Drape of the Magmaforged].RankName}].ID} || 
+	!${Me.Buff[${Spell[Remorseless Demeanor].RankName}].ID} || 
+	!${Me.Buff[${Spell[Helot Skin].RankName}].ID} || 
+	!${Me.Buff[${Spell[Call of Nightfall].RankName}].ID}
+	
 	/if (!${Me.Buff[Drape of the Wrathforged].ID}) {
 	/popup Rebuff Drape of the Wrathforged 	
 	}

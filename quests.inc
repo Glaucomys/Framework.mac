@@ -45,10 +45,13 @@ Sub Event_CustomExp
 	    }
 	    /varcalc custoncount (${custoncount}+1)
 	    /echo ${Time} Killed ${custoncount} mobs so far since ${firstkill}
-            /echo SLAIN >> ${MyTargetName} << EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
-            /popup SLAIN >> ${MyTargetName} << EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
+		
+            |/echo SLAIN >> ${MyTargetName} << EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
+            |/popup SLAIN >> ${MyTargetName} << EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
+	
 	/doevents flush CustomExp
 /return
+
 Sub IsAnyoneInGroupOutofRange(int bShake)
 	/declare gn int local 0
 	/declare currdist int local 0

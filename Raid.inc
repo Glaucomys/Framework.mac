@@ -271,9 +271,15 @@ Sub Event_SWITCH(Line,ASSIST)
 |/varset movetotarget ${Target.ID}
 |/moveto id ${movetotarget} mdist 5
 |/return
+
 Sub Event_BerAlli
-    /popup Ber Alliance fired
+    /popup Ber Alliance Cast
 /return
+
+Sub Event_BerAlliFulm
+    /popup Ber Alliance Fulminated
+/return
+
 
 |------------------------------------------------------------
 |Maestro

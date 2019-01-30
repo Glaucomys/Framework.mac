@@ -37,6 +37,15 @@
 #include framework\wiz.inc
 #include framework\Manual.inc
 |#DEFINE /squelch " "
+
+
+|/echo MezImmune: ${Ini[${InfoFileName},${ZoneName},MezImmune].Find[${MyTargetName}]}
+|        /echo MobsToPull: ${Ini[${InfoFileName},${ZoneName},MobsTopull].Find[${MyTargetName}]}
+|        /echo MobsToIgnore: ${Ini[${InfoFileName},${ZoneName},MobsToIgnore].Find[${MyTargetName}]}
+|        /echo MobsToBurn: ${Ini[${InfoFileName},${ZoneName},MobsToBurn].Find[${MyTargetName}]}
+| /varset targetannouncerID ${Spawn[id ${Target.ID}].TargetOfTarget.ID}
+| /varset MyTargetID ${Spawn[id ${AnnouncerID}].TargetOfTarget.ID}
+
 | ------------------------------casting events ----------------------------------------
 #Event CAST_BEGIN                  "You begin casting#*#"
 #Event CAST_BEGIN                  "You begin singing#*#"
@@ -149,19 +158,20 @@
 |#Event YouHit            "|${Me}| #1# #2# for #3# points of non-melee damage."
 |#Event YouHit            "#1# has taken #2# damage from your #3#."
 |#Event YouHit            "You #1# #2# for #3# points of damage."
-#Event YouHit            "|${Me}| #1# #2# for #3# points of non-melee damage.#4#"
-#Event YouHit            "#2# has taken #3# damage from your #1#.#4#"
-#Event YouHit            "You #1# #2# for #3# points of damage.#4#"   
-#Event YouHit            "You try to #*#, but miss"
-#Event YourPetHit        "|${Me.Pet.CleanName}| #1# #2# for #3# points of damage.#4#"
-#Event YourPetHit        "|${Me.Pet.CleanName}| #1# #2# for #3# points of non-melee damage.#4#"
-#Event YourPetHit        "|${Me}|`s pet #1# #2# for #3# points of damage.#4#"
-#Event YourPetHit        "|${Me}|`s pet #1# #2# for #3# points of non-melee damage.#4#"
-#Event YourPetHit        "|${Me}|`s warder #1# #2# for #3# points of damage.#4#"
-#Event YourPetHit        "|${Me}|`s warder #1# #2# for #3# points of non-melee damage.#4#"
+|#Event YouHit            "|${Me}| #1# #2# for #3# points of non-melee damage.#4#"
+|#Event YouHit            "#2# has taken #3# damage from your #1#.#4#"
+|#Event YouHit            "You #1# #2# for #3# points of damage.#4#"   
+|#Event YouHit            "You try to #*#, but miss"
+|#Event YourPetHit        "|${Me.Pet.CleanName}| #1# #2# for #3# points of damage.#4#"
+|#Event YourPetHit        "|${Me.Pet.CleanName}| #1# #2# for #3# points of non-melee damage.#4#"
+|#Event YourPetHit        "|${Me}|`s pet #1# #2# for #3# points of damage.#4#"
+|#Event YourPetHit        "|${Me}|`s pet #1# #2# for #3# points of non-melee damage.#4#"
+|#Event YourPetHit        "|${Me}|`s warder #1# #2# for #3# points of damage.#4#"
+|#Event YourPetHit        "|${Me}|`s warder #1# #2# for #3# points of non-melee damage.#4#"
 |****************************************| Alliances |***********************************************|
 #Event BerAlli         "#1# is targeted by a demolisher's alliance."
-
+#Event BerAlliFulm		"The demolisher's alliance is fulfilled!"
+#Event BerAlliFulm		"#*#demolisher's alliance is fulfilled!"
 |****************************************| MANUAL EVENTS |***********************************************|
 #event oorange "Your target is too far away, get closer!"
 #event expp "You gain party experience!!" 
@@ -203,6 +213,7 @@
 #bind TrackMeDown    /trackmedown
 #bind WriteMySpells  /writespells
 #bind ZoneInfo       /zoneinfo
+#bind combatreset       /combatreset
 | -------------------------------------------------------------------------------------
 | Sub Main
 | -------------------------------------------------------------------------------------
@@ -232,12 +243,17 @@ Sub Main
         /squelch /plugin MQ2Bucles unload noauto
         /echo MQ2Bucles detected! This macro doesn't like it! Unloading ...
     }
+	/if (${Bool[${Plugin[MQ2Melee]}]}) {
+        /squelch /plugin MQ2Melee unload
+        /echo MQ2Melee detected! This plugin is the devil! Unloading ... PM me if you insist!
+    }
     | ini file fix for zones with commas in them
     /declare ZoneName string outer ${Zone}${If[${Me.InInstance},_I,]}
     /if (${ZoneName.Find[,]} || ${ZoneName.Find[']} ) {
         /echo ${ZoneName} has a comma or apostrophe in the name, setting Zone Short Name ...
         /varset ZoneName ${Zone.ShortName}${If[${Me.InInstance},_I,]}
     }
+	
 	/declare IniLevel            int      outer
 	/if (${Me.Level}>=110) {
 		/varset IniLevel 110
@@ -422,7 +438,6 @@ Sub Main
         /varset EQBCSay bct ${EQBCOn.Arg[2,|]}
         /varset EQBCOn 2
     }
-    /call LoadIni General IRCOn                 int         0
     /if (${Select[${Me.Class.ShortName},BER,MNK,ROG,WAR]}==0) {
         /call LoadIni General MiscGem           int         8
         /call LoadIni General MiscGemLW         int         0
@@ -681,9 +696,9 @@ Sub Main
     /call LoadIni Pull UseWayPointZ             int         0
     /call LoadIni Pull PullWait                 int         5
     /call LoadIni "${ZoneName}" MobsToPull      string      "List up to 25 mobs. Use full names i.e. a green snake,a blue tiger,a wide eye ooze or ALL for all mobs" NULL  ${InfoFileName}
-    /call LoadIni "${ZoneName}" MobsToIgnore    string      "List up to 25 mobs. Use full names i.e. a green snake,a blue tiger,a wide eye ooze or NULL" NULL ${InfoFileName}
-    /call LoadIni "${ZoneName}" MobsToBurn      string      "List up to 10 mobs. Use full names i.e. Beget Cube,Helias,Raze or NULL" Null ${InfoFileName}
-    /call LoadIni "${ZoneName}" PullPath        string      "Place holder for path file. Not yet impletmented." NULL ${InfoFileName}
+    /call LoadIni "${ZoneName}" MobsToIgnore    string      "List up to 25 mobs. Use full names i.e. a green snake,a blue tiger,a wide eye ooze" NULL ${InfoFileName}
+    /call LoadIni "${ZoneName}" MobsToBurn      string      "List up to 10 mobs. Use full names i.e. Beget Cube,Helias,Raze" Null ${InfoFileName}
+    
     /call LoadIni Pull PullRadiusToUse          int         90
     /call LoadIni Pull PullRoleToggle           int         0
     /call LoadIni Pull ChainPull                int         0
@@ -799,8 +814,8 @@ Sub Main
     /declare MountOn                int         outer       1
     /declare MQ2MeleeReload         int         outer       0
     /declare MQ2CastReload          int         outer       0
-    /declare MyAAExp                float       outer       ${Me.PctAAExp}
-    /declare MyExp                  float       outer       ${Me.PctExp}
+    |/declare MyAAExp                float       outer       ${Me.PctAAExp}
+    |/declare MyExp                  float       outer       ${Me.PctExp}
     /declare MyMerc                 string      outer       0
     /declare MyOriginalRole         string      outer
     /declare MyTargetID             int         outer       0
@@ -950,13 +965,14 @@ Sub Main
 | -------------------------------------------------------------------------------------
 | Check if required plugins are loaded and settings
 | -------------------------------------------------------------------------------------
-    /call CheckPlugin MQ2Cast
+    |/call CheckPlugin MQ2Cast
     /call CheckPlugin MQ2Exchange
     /call CheckPlugin MQ2Moveutils
     /call CheckPlugin MQ2Posse
     /call CheckPlugin MQ2Rez
 	/call CheckPlugin MQ2Spawnsort
     /call CheckPlugin MQ2Worsthurt
+	/call CheckPlugin MQ2Debuffs
     /if (${IAmABard}) /call CheckPlugin MQ2Twist
     /if (!${IAmABard} && !${Bool[${Plugin[mq2twist]}]}) /declare Twist int outer 0
     /if (${UseMQ2Melee}) {
@@ -1188,10 +1204,10 @@ Sub Main
         }
         /if (!${Group.MainAssist.Name.Length}) {
             /if (${Spawn[${MainAssist}].Type.Equal[pet]}) {
-                /call BroadCast ${IRCOn} ${EQBCOn} r "Assigning ${Spawn[${MainAssist}].Master.CleanName} as Main Assist in Group Window"
+                /call BroadCast ${EQBCOn} r "Assigning ${Spawn[${MainAssist}].Master.CleanName} as Main Assist in Group Window"
                 /call AssignGroupRole set "${Spawn[${MainAssist}].Master.CleanName}" 2
             } else {
-            /call BroadCast ${IRCOn} ${EQBCOn} r "Assigning ${MainAssist} as Main Assist in Group Window"
+            /call BroadCast ${EQBCOn} r "Assigning ${MainAssist} as Main Assist in Group Window"
             /call AssignGroupRole set "${MainAssist}" 2
             }
         }
@@ -1204,18 +1220,18 @@ Sub Main
     /squelch /assist off
     /if (${Role.Find[pull]} || ${Role.Find[hunt]}) {
         /if (${PullPathWpCount} && ${PullMoveUse.Equal[advpath]}) {
-            /call BroadCast ${IRCOn} ${EQBCOn} r "PULL: Path >> ${PullPath} <<  found with ${PullPathWpCount} waypoints."
-            /call BroadCast ${IRCOn} ${EQBCOn} r "PULL: Using MQ2AdvPath to Pull with."
+            /call BroadCast ${EQBCOn} r "PULL: Path >> ${PullPath} <<  found with ${PullPathWpCount} waypoints."
+            /call BroadCast ${EQBCOn} r "PULL: Using MQ2AdvPath to Pull with."
         } else /if (${Bool[${Plugin[MQ2Nav]}]}) {
             /if (${Navigation.MeshLoaded}) {
                 | Set pullmoveuse to nav if mq2nav is detected without a mq2advpath path
                 /varset PullMoveUse nav
-                /call BroadCast ${IRCOn} ${EQBCOn} r "PULL: The MQ2Nav mesh for ${Zone} is loaded"
-                /call BroadCast ${IRCOn} ${EQBCOn} r "PULL: Using MQ2Nav to Pull with ${PullWith}"
+                /call BroadCast ${EQBCOn} r "PULL: The MQ2Nav mesh for ${Zone} is loaded"
+                /call BroadCast ${EQBCOn} r "PULL: Using MQ2Nav to Pull with ${PullWith}"
             }   
         } else {   
             /varset PullMoveUse los
-            /call BroadCast ${IRCOn} ${EQBCOn} r "PULL: Using Line of Sight to Pull with ${PullWith}"
+            /call BroadCast ${EQBCOn} r "PULL: Using Line of Sight to Pull with ${PullWith}"
         }
             } else {
         /if (${Bool[${Plugin[MQ2Nav]}]}) {
@@ -1256,8 +1272,8 @@ Sub Main
 				|Checking for combat
 				
 
-				/if (${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]} && (!${Me.Combat} || ${Target.ID}!=${MyTargetID} || ${MyTargetID}==0) && ${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call FindTarget 1
-				/if ((${MyTargetID}==0 || !${Spawn[targetable id ${MyTargetID}].ID} || ${Spawn[corpse id ${MyTargetID}].ID}) && ${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call FindTarget 2
+				/if (${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]} && (!${Me.Combat} || ${Target.ID}!=${MyTargetID} || ${MyTargetID}==0) && ${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]} && !${Spawn[corpse id ${MyTargetID}].ID}) /call FindTarget 1
+				/if (!${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]} && (${MyTargetID}==0 || !${Spawn[targetable id ${MyTargetID}].ID} || ${Spawn[corpse id ${MyTargetID}].ID}) && ${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call FindTarget 2
 				/if (!${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) /call EngageTarget
 			
 				/call _${Me.Class.ShortName}
@@ -1673,7 +1689,7 @@ Sub Main
                         /delay 10 ${Target.ID}==${TempTargetID}
                     } else /if (${Alert[4].Size} && ${Spawn[xtarhater alert 4].ID} && ${Spawn[xtarhater alert 4].Type.NotEqual[Corpse]}) {
                         /varset TempTargetID ${NearestSpawn[1, xtarhater alert 4].ID}
-                        /call BroadCast ${IRCOn} ${EQBCOn} y "Grabbing MEZ Immune -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+                        /call BroadCast ${EQBCOn} y "Grabbing MEZ Immune -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
                         /squelch /target id ${TempTargetID}
                         /delay 10 ${Target.ID}==${TempTargetID}
                     } else {
@@ -1710,7 +1726,7 @@ Sub Main
                         /delay 10 ${Target.ID}==${BlurredMobID}
                         /delay 30 ${Target.Mezzed.ID}
                         /if (${Target.Mezzed.ID}) {
-                            /call BroadCast ${IRCOn} ${EQBCOn} y "Found Mezzed Mob: ${Spawn[${BlurredMobID}].CleanName} <- ID:${BlurredMobID}"
+                            /call BroadCast ${EQBCOn} y "Found Mezzed Mob: ${Spawn[${BlurredMobID}].CleanName} <- ID:${BlurredMobID}"
                             /echo MEZ >> Found a Mezzed mob in Camp. <<
                             /varset AggroTargetID2 ${BlurredMobID}
                             /varset MyTargetID ${Target.ID}
@@ -1896,8 +1912,8 @@ Sub Main
                 /varset CombatStart 1
                 /echo  ATTACKING -> ${Spawn[${MyTargetID}].CleanName} <-
                 /if (${IAmABard}) /call DoBardStuff
-                /if (${Select[${Role},Tank,PullerTank,Hunter]}) /call BroadCast ${IRCOn} ${EQBCOn} y "TANKING-> ${Spawn[${MyTargetID}].CleanName} <- ID:${MyTargetID}"
-                /if (${Select[${Role},petTank,pullerpettank,hunterpettank]}) /call BroadCast ${IRCOn} ${EQBCOn} y "${Me.Pet.CleanName} is TANKING-> ${Spawn[${MyTargetID}].CleanName} <- ID:${MyTargetID}"
+                /if (${Select[${Role},Tank,PullerTank,Hunter]}) /call BroadCast ${EQBCOn} y "TANKING-> ${Spawn[${MyTargetID}].CleanName} <- ID:${MyTargetID}"
+                /if (${Select[${Role},petTank,pullerpettank,hunterpettank]}) /call BroadCast ${EQBCOn} y "${Me.Pet.CleanName} is TANKING-> ${Spawn[${MyTargetID}].CleanName} <- ID:${MyTargetID}"
                 | Moloing as as puller turn off puller tag in group so tank merc attacks and doesn't wait for me to get 2 feet near them.
                 /if (${Group}==1 && ${Select[${Role},puller]} && ${Group.Puller.Name.Equal[${Me}]} && ${Spawn[=${MainAssist}].Type.Equal[Mercenary]} && ${Math.Distance[${CampYLoc},${CampXLoc}]}<${CampRadius}) /call AssignGroupRole unset "${Me.CleanName}" 3
             }
@@ -1942,8 +1958,8 @@ Sub Main
                     /if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID} 1
                 }
             }
-            /varset  MyExp ${Me.PctExp}
-            /varset  MyAAExp ${Me.PctAAExp}
+            |/varset  MyExp ${Me.PctExp}
+            |/varset  MyAAExp ${Me.PctAAExp}
             | Turn on check for mez mob in camp that has been mem blurred if i am a tank type
             /if (${Select[${Role},tank,pullertank,pettank,pullerpettank]}) /varset MezMobFlag 1
             /if (${Stick.Active} && !${MeleeOn}) /stick off
@@ -2001,7 +2017,7 @@ Sub Main
                         }
 						/if (${DebuffAllOn}) /call DebuffCast ${MyTargetID} 1 
                     } else /if (${SpamTankWait}) {
-                        /call BroadCast ${IRCOn} ${EQBCOn} r "Holding Pulls. Tank to far from camp."
+                        /call BroadCast ${EQBCOn} r "Holding Pulls. Tank to far from camp."
                         /varset SpamTankWait 0 
                     }
                 }   
@@ -2425,48 +2441,48 @@ Sub Main
         /declare DPSMPCalc string local
         /declare DPSMPTCalc string local
         /if (${DebugCombat}) /echo \atDEBUGCOMBAT CombatReset: Enter ${SFlag} ${CalledFrom} \agLine#: ${Macro.CurLine}
-        /if (${MyTargetID} && ${CombatStart} && ${DPSMeter} && !${SFlag}) {
-            /echo SLAIN >> ${MyTargetName} << 
-            /echo EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
-            /popup SLAIN >> ${MyTargetName} << EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
-            /if (!${DPSLastTime}) {
-                /echo DPS Meter: Was a timing error skipping DPS Meter
-            } else {
-                | My damage calculation
-                /varset DPSCalc ${Math.Calc[${DPSTotal}/${DPSLastTime}]}
-                /call CommaMeBro ${DPSCalc}
-                /if (${Macro.Return.Length}) /varset DPSMyDam ${Macro.Return}
-                /call CommaMeBro ${DPSTotal}
-                /if (${Macro.Return.Length}) /varset DPSTCalc ${Macro.Return}
-                /echo \aw DPS Meter - \ay Your Total Damage: \at ${DPSTCalc} - \ay Fight Time: \aw ${DPSLastTime}s - \ay DPS: \ag ${DPSMyDam}
-                /if (!${DPSPetTotal}) /call BroadCast ${IRCOn} ${EQBCOn} r "${Me}'s DPS: ${DPSMyDam}"
-                | My pet damage calculation
-                /if (${DPSPetTotal}) {
-                    /varset DPSPCalc ${Math.Calc[${DPSPetTotal}/${DPSLastTime}]}
-                    /call CommaMeBro ${DPSPCalc}
-                    /if (${Macro.Return.Length}) /varset DPSMyPetDam ${Macro.Return}
-                    /call CommaMeBro ${DPSPetTotal}
-                    /if (${Macro.Return.Length}) /varset DPSPTCalc ${Macro.Return}
-                    /echo \aw DPS Meter - \ay Pet Total Damage: \at ${DPSPTCalc} \ay - Pet DPS: \ag ${DPSMyPetDam}
-                    | Me + pet damage calculation
-                    /varset DPSMPCalc ${Math.Calc[(${DPSTotal}+${DPSPetTotal})/${DPSLastTime}]}
-                    /call CommaMeBro ${DPSMPCalc}
-                    /if (${Macro.Return.Length}) /varset DPSMeAndPetDam ${Macro.Return}
-                    /call CommaMeBro ${Math.Calc[${DPSTotal}+${DPSPetTotal}]}
-                    /if (${Macro.Return.Length}) /varset DPSMPTCalc ${Macro.Return}
-                    /call BroadCast ${IRCOn} ${EQBCOn} r "${Me}'s DPS: ${DPSMyDam} + Pet = Total: ${DPSMeAndPetDam}"
-                    /echo \aw DPS Meter - \ay You + Pet Total Damage: \at ${DPSMPTCalc} \ay - DPS: \ag ${DPSMeAndPetDam}
-                }
-                /popup Total Damage: ${DPSTCalc} - Fight Time: ${DPSLastTime}s - DPS: ${DPSMyDam}
-                /if (${Defined[ParseDPS]} || ${DPSWriteOn}) {
-                    /ini "Kissassist_DPS" "${MyTargetName}-${MyTargetID} - ${Time.Month}/${Time.Day}/${Time.Year}-${Time.Time12}" "DPS-${Me.Class}-${Me.Level}" "Total Damage: ${DPSTCalc} - Fight Time: ${DPSLastTime}s - DPS: ${DPSMyDam}"
-                    /if (${DPSPetTotal}) {
-                        /ini "Kissassist_DPS" "${MyTargetName}-${MyTargetID} - ${Time.Month}/${Time.Day}/${Time.Year}-${Time.Time12}" "DPS-MyPet" "My Pet Total Damage: ${DPSPTCalc} - Pet DPS: ${DPSMyPetDam}"
-                        /ini "Kissassist_DPS" "${MyTargetName}-${MyTargetID} - ${Time.Month}/${Time.Day}/${Time.Year}-${Time.Time12}" "DPS-Combined" "Me + Pet Total Damage: ${DPSMPTCalc} - Combined DPS: ${DPSMeAndPetDam}"
-                    }
-                }
-            }
-        }
+        |/if (${MyTargetID} && ${CombatStart} && ${DPSMeter} && !${SFlag}) {
+        |    /echo SLAIN >> ${MyTargetName} << 
+        |    /echo EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
+        |    /popup SLAIN >> ${MyTargetName} << EXP: ${If[${Me.PctExp}<${MyExp},${Math.Calc[100-${MyExp}+${Me.PctExp}]},${Math.Calc[${Me.PctExp}-${MyExp}]}]}% AAEXP: ${If[${Me.PctAAExp}<${MyAAExp},${Math.Calc[100-${MyAAExp}+${Me.PctAAExp}]},${Math.Calc[${Me.PctAAExp}-${MyAAExp}]}]}%
+        |    /if (!${DPSLastTime}) {
+        |        /echo DPS Meter: Was a timing error skipping DPS Meter
+        |    } else {
+        |        | My damage calculation
+        |        /varset DPSCalc ${Math.Calc[${DPSTotal}/${DPSLastTime}]}
+        |        /call CommaMeBro ${DPSCalc}
+        |        /if (${Macro.Return.Length}) /varset DPSMyDam ${Macro.Return}
+        |        /call CommaMeBro ${DPSTotal}
+        |        /if (${Macro.Return.Length}) /varset DPSTCalc ${Macro.Return}
+        |        /echo \aw DPS Meter - \ay Your Total Damage: \at ${DPSTCalc} - \ay Fight Time: \aw ${DPSLastTime}s - \ay DPS: \ag ${DPSMyDam}
+        |        /if (!${DPSPetTotal}) /call BroadCast ${EQBCOn} r "${Me}'s DPS: ${DPSMyDam}"
+        |        | My pet damage calculation
+        |        /if (${DPSPetTotal}) {
+         |           /varset DPSPCalc ${Math.Calc[${DPSPetTotal}/${DPSLastTime}]}
+        |            /call CommaMeBro ${DPSPCalc}
+        |            /if (${Macro.Return.Length}) /varset DPSMyPetDam ${Macro.Return}
+        |            /call CommaMeBro ${DPSPetTotal}
+        |            /if (${Macro.Return.Length}) /varset DPSPTCalc ${Macro.Return}
+        |            /echo \aw DPS Meter - \ay Pet Total Damage: \at ${DPSPTCalc} \ay - Pet DPS: \ag ${DPSMyPetDam}
+        |            | Me + pet damage calculation
+        |            /varset DPSMPCalc ${Math.Calc[(${DPSTotal}+${DPSPetTotal})/${DPSLastTime}]}
+         |           /call CommaMeBro ${DPSMPCalc}
+        |            /if (${Macro.Return.Length}) /varset DPSMeAndPetDam ${Macro.Return}
+        |            /call CommaMeBro ${Math.Calc[${DPSTotal}+${DPSPetTotal}]}
+        |            /if (${Macro.Return.Length}) /varset DPSMPTCalc ${Macro.Return}
+        |            /call BroadCast ${EQBCOn} r "${Me}'s DPS: ${DPSMyDam} + Pet = Total: ${DPSMeAndPetDam}"
+        |            /echo \aw DPS Meter - \ay You + Pet Total Damage: \at ${DPSMPTCalc} \ay - DPS: \ag ${DPSMeAndPetDam}
+        |        }
+         |       /popup Total Damage: ${DPSTCalc} - Fight Time: ${DPSLastTime}s - DPS: ${DPSMyDam}
+         |       /if (${Defined[ParseDPS]} || ${DPSWriteOn}) {
+         |           /ini "Kissassist_DPS" "${MyTargetName}-${MyTargetID} - ${Time.Month}/${Time.Day}/${Time.Year}-${Time.Time12}" "DPS-${Me.Class}-${Me.Level}" "Total Damage: ${DPSTCalc} - Fight Time: ${DPSLastTime}s - DPS: ${DPSMyDam}"
+        |            /if (${DPSPetTotal}) {
+        |                /ini "Kissassist_DPS" "${MyTargetName}-${MyTargetID} - ${Time.Month}/${Time.Day}/${Time.Year}-${Time.Time12}" "DPS-MyPet" "My Pet Total Damage: ${DPSPTCalc} - Pet DPS: ${DPSMyPetDam}"
+        |                /ini "Kissassist_DPS" "${MyTargetName}-${MyTargetID} - ${Time.Month}/${Time.Day}/${Time.Year}-${Time.Time12}" "DPS-Combined" "Me + Pet Total Damage: ${DPSMPTCalc} - Combined DPS: ${DPSMeAndPetDam}"
+        |            }
+        |        }
+        |    }
+        |}
         /declare i int local
         /declare j int local
         /call MobRadar ${MeleeDistance} CombatReset
@@ -2599,7 +2615,7 @@ Sub Main
         | Spam Adds in camp
         /if (${AggroTargetID} && ${Spawn[${AggroTargetID}].Distance}<=${CampRadius} && !${MyTargetID} && !${AddSpam}) {
             /popup Add(s) in camp detected          
-            /if (${MainAssist.Equal[${Me}]} || ${Select[${Role},tank,pullertank,pettank,pullerpettank]}) /call BroadCast ${IRCOn} ${EQBCOn} r "Add(s) in camp detected"      
+            /if (${MainAssist.Equal[${Me}]} || ${Select[${Role},tank,pullertank,pettank,pullerpettank]}) /call BroadCast ${EQBCOn} r "Add(s) in camp detected"      
             /if (${Select[${Role},pullertank,pullerpettank]}) /varset Pulled 0
             /varset AddSpam 5s
         }
@@ -3472,7 +3488,7 @@ Sub Main
                 /if (${Debug} || ${DebugMove}) /echo \atDEBUG ChaseAssist exceed camp check \agLine#: ${Macro.CurLine}
                 /varset ChaseAssist 0
                 /echo ChaseAssist distance exceeded: Turning off ChaseAssist
-                /call BroadCast ${IRCOn} ${EQBCOn} r "Hey! I got left behind please run me to " ${WhoToChase}
+                /call BroadCast ${EQBCOn} r "Hey! I got left behind please run me to " ${WhoToChase}
             }
             /if (${Spawn[=${WhoToChase}].Distance} > ${ChaseDistance}) {
                 /if (${Debug} || ${DebugMove}) /echo \atDEBUG ChaseAssist MA distance check \agLine#: ${Macro.CurLine}
@@ -3596,7 +3612,7 @@ Sub Main
                 /squelch /target clear
                 /varset Medding 1
                 /if (${Attacking}) /call CombatReset 0 dowemed
-                |/if (${Select[${Role},puller,pullertank,pullerpettank,hunter,hunterpettank]}) /call BroadCast ${IRCOn} ${EQBCOn} t "PULLER-> My ${MedStat} is ${Me.Pct${MedStat}}% time to med."
+                |/if (${Select[${Role},puller,pullertank,pullerpettank,hunter,hunterpettank]}) /call BroadCast ${EQBCOn} t "PULLER-> My ${MedStat} is ${Me.Pct${MedStat}}% time to med."
                 | bards twisting while others fighting negate fast med 
                 /if (${IAmABard}) {
                     /if (${AggroTargetID} || ${MedCombat}) {
@@ -3625,7 +3641,7 @@ Sub Main
                     }
                 }
                 /if (${Medding}) /echo Medding until ${MedStat} 100% ${Me.Pct${MedStat}} ${MedStart}
-                /if (${Me.Pct${MedStat}}<${MedStart}) /call BroadCast ${IRCOn} ${EQBCOn} t "My ${MedStat} is ${Me.Pct${MedStat}}% time to med."
+                /if (${Me.Pct${MedStat}}<${MedStart}) /call BroadCast ${EQBCOn} t "My ${MedStat} is ${Me.Pct${MedStat}}% time to med."
                 /while (1) {
                     /if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
 					/doevents
@@ -3727,7 +3743,7 @@ Sub Main
                                 /if (${Debug}) /echo \amDEBUG DoPetMedStuff (${SingleHeal[${j}].Arg[3,|].Find[PET]} && ${Me.Pet.PctHPs} && ${Me.Pet.ID} && ${Me.Pet.Distance}<${Spell[${SingleHeal[${j}].Arg[1,|]}].Range}) \agLine#: ${Macro.CurLine}
                                 /call CastWhat "${SingleHeal[${j}].Arg[1,|]}" ${Me.Pet.ID} Med 0
                                 /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                                    /call BroadCast ${IRCOn} ${EQBCOn} o "${Heals[${j}].Arg[1,|]} on  >> ${Me.Pet.CleanName} <<"
+                                    /call BroadCast ${EQBCOn} o "${Heals[${j}].Arg[1,|]} on  >> ${Me.Pet.CleanName} <<"
                                     /varcalc PetHealTimer${j} (${Spell[${SingleHeal[${j}].Arg[1,|]}].Duration.TotalSeconds}*${DurationMod})*10
                                 }
                                 /break
@@ -5393,7 +5409,7 @@ Sub Main
                     /if (!${Pulled} && ${CombatStart} && ${Me.PctHPs}<=${SHealPct} && ${Target.Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && ${Spawn[${MyTargetID}].Distance}<=${SHealRange} && ${Spell${i}GM0}==0) {
                         /call CastWhat "${SHealSpell}" ${Spawn[${MyTargetID}].ID} SingleHeal 0
                         /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                            /call BroadCast ${IRCOn} ${EQBCOn} o "${SHealSpell} for  >> ${Me.CleanName} <<"
+                            /call BroadCast ${EQBCOn} o "${SHealSpell} for  >> ${Me.CleanName} <<"
                         /if (${Spell[${SHealSpell}].Duration.TotalSeconds}>0) {
                             /varcalc Spell${i}GM0 (${Spell[${SHealSpell}].Duration.TotalSeconds}*${DurationMod})*10
                         } else /if (${Spell[${SHealSpell}].RecastTime}>0) {
@@ -5416,7 +5432,7 @@ Sub Main
                         /varset HealAgain 2
                         /call CastWhat "${SHealSpell}" ${Spawn[${MyTargetID}].ID} SingleHeal 0
                         /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                            /call BroadCast ${IRCOn} ${EQBCOn} o "${SHealSpell} for >>${Spawn[${SHealName} ${SHealType}].CleanName} << cast on ${Spawn[${MyTargetID}].CleanName}"
+                            /call BroadCast ${EQBCOn} o "${SHealSpell} for >>${Spawn[${SHealName} ${SHealType}].CleanName} << cast on ${Spawn[${MyTargetID}].CleanName}"
                             /varset HealAgain 1
                             /return
                         } else /if (${Macro.Return.Equal[CAST_CANCELLED]}) /return
@@ -5447,7 +5463,7 @@ Sub Main
                     /call CastWhat "${SHealSpell}" ${SHealThem} SingleHeal 0
                     /if (${DebugHeal}) /echo \amDEBUGHEALS SingleHeal \awMR: ${Macro.Return} \agLine#: ${Macro.CurLine}
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                        /call BroadCast ${IRCOn} ${EQBCOn} o "${SHealSpell} on  >> ${Spawn[${SHealName} ${SHealType}].CleanName} <<"
+                        /call BroadCast ${EQBCOn} o "${SHealSpell} on  >> ${Spawn[${SHealName} ${SHealType}].CleanName} <<"
                         /if (${SHealSpell.Find[Rune]}) { 
                             /if (${SHealFlag.Equal[G]}) {
                                 /varset Spell${i}GM${WhoNum} 0
@@ -5543,7 +5559,7 @@ Sub Main
                     /call CastWhat "${HealSpell}" ${Me.ID} GroupHeal 0
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
                         /if (${DebugHeal}) /echo \amDEBUGHEALS DoGroupHealStuff ${HealSpell} on  >> Group << \agLine#: ${Macro.CurLine}
-                        /call BroadCast ${IRCOn} ${EQBCOn} o "${HealSpell} on  >> Group <<"
+                        /call BroadCast ${EQBCOn} o "${HealSpell} on  >> Group <<"
                         /varcalc SpellGH${j} (${Spell[${HealSpell}].Duration.TotalSeconds}*${DurationMod})*10
                         /if (${DebugHeal}) /echo DEBUGHEALS DoGroupHealStuff Assign Timer:SpellGH${j} (${Spell[${HealSpell}].Duration}*${DurationMod}.TotalSeconds) ${SpellGH${j}} \agLine#: ${Macro.CurLine}
                         /varset HealAgain    1
@@ -5568,7 +5584,7 @@ Sub Main
                /if (${DebugHeal}) /echo \amDEBUGHEALS DoPetHealStuff (${Me.Pet.PctHPs}<=${SingleHeal[${j}].Arg[2,|]} && ${Me.Pet.ID} && ${Me.Pet.Distance}<${Spell[${SingleHeal[${j}].Arg[1,|]}].Range}) \agLine#: ${Macro.CurLine}
                /call CastWhat "${SingleHeal[${j}].Arg[1,|]}" ${Me.Pet.ID} Heal 0
                 /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                    /call BroadCast ${IRCOn} ${EQBCOn} o "${SingleHeal[${j}].Arg[1,|]} on  >> ${Me.Pet.CleanName} <<"
+                    /call BroadCast ${EQBCOn} o "${SingleHeal[${j}].Arg[1,|]} on  >> ${Me.Pet.CleanName} <<"
                     /varcalc PetHealTimer${j} (${Spell[${SingleHeal[${j}].Arg[1,|]}].Duration.TotalSeconds}*${DurationMod})*10
                     /varset HealAgain    1
                 }
@@ -5642,7 +5658,7 @@ Sub Main
                     /delay 10
                     /call CastWhat "${RezWith}" ${Target.ID} RezCheck 1
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                        /call BroadCast ${IRCOn} ${EQBCOn} o "REZZING MA =>> ${MainAssist} <<="
+                        /call BroadCast ${EQBCOn} o "REZZING MA =>> ${MainAssist} <<="
                         /varset OOCRezTimer${RezID} 3m
                     }
                 }
@@ -5664,7 +5680,7 @@ Sub Main
                 /delay 10
                 /call CastWhat "${RezWith}" ${Target.ID} RezCheck 1
                 /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                    /call BroadCast ${IRCOn} ${EQBCOn} o "REZZING ME =>> ${Me} <<="
+                    /call BroadCast ${EQBCOn} o "REZZING ME =>> ${Me} <<="
                     /varset OOCRezTimer${RezMeID} 3m
                     /varset RezWait 20
                     /while (${CorpseCount}==${SpawnCount[pccorpse ${Me} radius ${RezRadius} zradius 50]} && ${RezWait}) {
@@ -5694,7 +5710,7 @@ Sub Main
                     /delay 10
                     /call CastWhat "${RezWith}" ${Target.ID} RezCheck 1
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                        /call BroadCast ${IRCOn} ${EQBCOn} o "BATTLE REZZED =>> ${Group.Member[${i}]} <<="
+                        /call BroadCast ${EQBCOn} o "BATTLE REZZED =>> ${Group.Member[${i}]} <<="
                         /varset BattleRezTimer${i} 3m
                         /squelch /target clear
                         /if (${RezWith.Find[Call of]}) /varset BattleRezTimer${i} 6m
@@ -5735,7 +5751,7 @@ Sub Main
                         /if (${Target.Distance}<=${RezRadius}) {
                             /call CastWhat "${RezWith}" ${Target.ID} RezCheck 1
                             /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                                /call BroadCast ${IRCOn} ${EQBCOn} o "Rezzing =>> ${Target.CleanName} <<="
+                                /call BroadCast ${EQBCOn} o "Rezzing =>> ${Target.CleanName} <<="
                                 /varset OOCRezTimer${RezID} 5m
                                 /squelch /target clear
                             }
@@ -5778,7 +5794,7 @@ Sub Main
                                     /call CastWhat "${RezWith}" ${Target.ID} RezCheck 1
                                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
                                         /varcalc RezCheckTries ${RezCheckTries}+1
-                                        /call BroadCast ${IRCOn} ${EQBCOn} o "Rezzing =>> ${Target.CleanName} for the ${RezCheckTries} Time<<="
+                                        /call BroadCast ${EQBCOn} o "Rezzing =>> ${Target.CleanName} for the ${RezCheckTries} Time<<="
                                         /varset OOCRezTimer${RezID} 3m
                                         /if (${RezCheck1.NotEqual[null]}) {
                                             /varset CorpseRezCheck ${CorpseRezCheck.Replace[${RezCheck1}|,${RezCheckID}:${RezCheckTries}|]}
@@ -6061,7 +6077,7 @@ Sub Main
             /if (${Alert[4].Size}) {
                 /for j 0 to ${Alert[4].Size}
                     /if (${Alert[4].List[${j}].Name.Equal[${MezArray[${i},3]}]} && ${Alert[4].List[${j}].Name.Length}) {
-                        /if (${MMTimer${i}}==0) /call BroadCast ${IRCOn} ${EQBCOn} g "MEZ Immune Detected -> ${MezArray[${i},3]} <- ID:${MezArray[${i},1]}"
+                        /if (${MMTimer${i}}==0) /call BroadCast ${EQBCOn} g "MEZ Immune Detected -> ${MezArray[${i},3]} <- ID:${MezArray[${i},1]}"
                         /varset MMTimer${i} 1m
                         /if (${DebugMez}) /echo ${Spawn[${MezArray[${i},1]}].Name} ID:${MezArray[${i},1]} is immune, Skip \agLine#: ${Macro.CurLine}
                         /varset skipFlag 1
@@ -6116,7 +6132,7 @@ Sub Main
         /declare WasChasing int local 0
         /if (${IAmABard}) {
             /squelch /twist once ${Me.Gem[${MezAESpell}]}
-            /call BroadCast ${IRCOn} ${EQBCOn} g "MEZZING-> AE Mezzing Now - ${MezAESpell} "
+            /call BroadCast ${EQBCOn} g "MEZZING-> AE Mezzing Now - ${MezAESpell} "
             /delay 35
             /varset MezAETimer 300
         }
@@ -6138,7 +6154,7 @@ Sub Main
             /delay 10 ${Me.SpellReady[${MezAESpell}]}
             /varset MezAETimer ${Spell[${MezAESpell}].Duration.TotalSeconds}s
             /if (${DebugMez}) /echo \atDEBUGMEZ TIMER SET ${MezAETimer} \agLine#: ${Macro.CurLine}
-            /call BroadCast ${IRCOn} ${EQBCOn} g "AE MEZZING-> ${MezAESpell} "
+            /call BroadCast ${EQBCOn} g "AE MEZZING-> ${MezAESpell} "
             /if (${WasChasing}) /varset ChaseAssist 1
         }
         | Reset all mez timers to 0 after AE Mez
@@ -6170,9 +6186,9 @@ Sub Main
                     }            
                 }
             /if (${MezCount[${TimerNum}]}<1) {
-                /call BroadCast ${IRCOn} ${EQBCOn} g "MEZZING-> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
+                /call BroadCast ${EQBCOn} g "MEZZING-> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
             } else {
-                /call BroadCast ${IRCOn} ${EQBCOn} g "ReMEZZING-> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
+                /call BroadCast ${EQBCOn} g "ReMEZZING-> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
                 /varset ReMez 1
             }
             | Chanter mez code
@@ -6182,13 +6198,13 @@ Sub Main
                     /call CastWhat "${MezSpell}" ${MobID} Mez 0
                     /varcalc MezFail ${MezFail}+1
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                        /if (!${ReMez})  /call BroadCast ${IRCOn} ${EQBCOn} g "JUST MEZZED -> ${MezSpell} on ${Spawn[${MobID}].CleanName}:${MobID}"
-                        /if (${ReMez})  /call BroadCast ${IRCOn} ${EQBCOn} g "JUST REMEZZED -> ${MezSpell} on ${Spawn[${MobID}].CleanName}:${MobID}"
+                        /if (!${ReMez})  /call BroadCast ${EQBCOn} g "JUST MEZZED -> ${MezSpell} on ${Spawn[${MobID}].CleanName}:${MobID}"
+                        /if (${ReMez})  /call BroadCast ${EQBCOn} g "JUST REMEZZED -> ${MezSpell} on ${Spawn[${MobID}].CleanName}:${MobID}"
                         /varcalc MezCount[${TimerNum}] ${MezCount[${TimerNum}]}+1
                         /varcalc MezTimer${TimerNum} ((${Spell[${MezSpell}].Duration.TotalSeconds}+${MezMod})*10)*.90
                         /if (${DebugMez}) /echo DEBUGMEZ MezTimer${TimerNum} ${MezTimer${TimerNum}} \agLine#: ${Macro.CurLine}
                     } else /if (${Macro.Return.Equal[CAST_RESIST]} && ${MezFail}<2) {
-                        /call BroadCast ${IRCOn} ${EQBCOn} g "MEZ Resisted -> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
+                        /call BroadCast ${EQBCOn} g "MEZ Resisted -> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
                         /continue
                     } else /if (${Macro.Return.Equal[CAST_IMMUNE]}) {
                         /if (!${MezImmuneIDs.Find[|${Target.ID}]}) /call AddMezImmune ${Target.ID}
@@ -6214,7 +6230,7 @@ Sub Main
                         /if (${DebugMez}) /echo \atDEBUGMEZ MezMobs MezTimer${TimerNum} ${MezTimer${TimerNum}} \agLine#: ${Macro.CurLine}
                         | Necro flag to release from mez loop since spell has 6 sec refresh.
                     } else /if (${Macro.Return.Equal[CAST_RESIST]} && ${MezFail}<2) {
-                    /call BroadCast ${IRCOn} ${EQBCOn} g "MEZ Resisted -> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
+                    /call BroadCast ${EQBCOn} g "MEZ Resisted -> ${Spawn[${MobID}].CleanName} <- ID:${MobID}"
                     /continue
                     } else /if (${Macro.Return.Equal[CAST_IMMUNE]}) {
                         /if (!${MezImmuneIDs.Find[|${Target.ID}]}) /call AddMezImmune ${Target.ID}
@@ -6600,7 +6616,7 @@ Sub Main
         }
         /if (${Spawn[${MainAssist}].Type.Equal[pet]} && ${Spawn[${MainAssist}].Master.CleanName.Equal[${mezbreaker}]}) /return
         /declare i int local
-        /call BroadCast ${IRCOn} ${EQBCOn} g ">>  ${Spawn[${mezbreaker}].CleanName} << has awakened -> ${mezmob}<-"
+        /call BroadCast ${EQBCOn} g ">>  ${Spawn[${mezbreaker}].CleanName} << has awakened -> ${mezmob}<-"
         /for i 1 to 30
             /if (${MezArray[${i},3].Equal[${mezmob}]}) {
                 /echo Resetting Mez Timer ${mezmob} ID: ${MezArray[${i},1]}
@@ -6635,7 +6651,7 @@ Sub Main
             /varset ImmuneAdd ${ImmuneAdd},${Spawn[${MezID}].CleanName}
         }
         /if (!${MezImmune.Find[${Spawn[${MezID}].CleanName}]}) /ini "${InfoFileName}" "${Zone}${If[${Me.InInstance},_I,]}" "MezImmune" "${ImmuneAdd}"
-        /call BroadCast ${IRCOn} ${EQBCOn} g "MEZ Immune -> ${Spawn[${MezID}].CleanName} <- ID:${MezID} Adding to MezImmune list."
+        /call BroadCast ${EQBCOn} g "MEZ Immune -> ${Spawn[${MezID}].CleanName} <- ID:${MezID} Adding to MezImmune list."
         | Reassign mezimmune var the new list
         /varset MezImmune ${ImmuneAdd}
     /return
@@ -6646,7 +6662,7 @@ Sub Main
         /if (${Select[${Me.Class.ShortName},Brd,Enc,Nec]}==0) /return
         /if (${MezImmuneIDs.Find[|${MezID}]}) /return
         /varset MezImmuneIDs ${MezImmuneIDs}|${MezID} 
-        /call BroadCast ${IRCOn} ${EQBCOn} g "MEZ Immune -> ${Spawn[${MezID}].CleanName} <- ID:${MezID} Skipping."
+        /call BroadCast ${EQBCOn} g "MEZ Immune -> ${Spawn[${MezID}].CleanName} <- ID:${MezID} Skipping."
     /return
 | -------------------------------------------------------------------------------------
 | SUB: Bind AddMezImmune
@@ -7570,7 +7586,7 @@ Sub Main
                 /varset Pulling 0
                 /return 0
             }
-            /call BroadCast ${IRCOn} ${EQBCOn} t "PULLING-> ${Spawn[${PullMob}].CleanName} <- ID:${PullMob} at ${Int[${Math.Distance[${Spawn[${PullMob}].Y},${Spawn[${PullMob}].X}:${CampYLoc},${CampXLoc}]}]} feet."
+            /call BroadCast ${EQBCOn} t "PULLING-> ${Spawn[${PullMob}].CleanName} <- ID:${PullMob} at ${Int[${Math.Distance[${Spawn[${PullMob}].Y},${Spawn[${PullMob}].X}:${CampYLoc},${CampXLoc}]}]} feet."
             /varset MyTargetID ${PullMob}
             /varset MyTargetName ${Spawn[${PullMob}].CleanName}
             /if (${Pulling} && ${MyTargetID}) {
@@ -7591,7 +7607,7 @@ Sub Main
                 /varset FailCounter 0
                 /varset PullAlertTimer 0
                 /if (${PullWait}) {
-                    /call BroadCast ${IRCOn} ${EQBCOn} t "PULLING-> Waiting ${PullWait} seconds for mobs to respawn."
+                    /call BroadCast ${EQBCOn} t "PULLING-> Waiting ${PullWait} seconds for mobs to respawn."
                     /call PullDelay ${PullWait}
                 }
                 /if (${Select[${Role},hunter,hunterpettank]} && ${Math.Distance[${CampYLoc},${CampXLoc}]} > 15) {
@@ -8545,7 +8561,7 @@ Sub Main
             }
         }
         /if (${Select[${Role},puller,pullertank,hunter,hunterpettank,pullerpettank]}) {
-            /call BroadCast ${IRCOn} ${EQBCOn} t "Waiting for >> ${charname} << to med up to ${resume}% ${stat}."
+            /call BroadCast ${EQBCOn} t "Waiting for >> ${charname} << to med up to ${resume}% ${stat}."
         } else {
             /echo  Waiting for >> ${charname} << to med up to ${resume}% ${stat}.
         }
@@ -8575,7 +8591,7 @@ Sub Main
             }
         /if (${Spawn[${ckclass} ${cktype} ${charname}].Current${stat}}<${resume}) /goto :wait_for_resume
         /if (${Select[${Role},puller,pullertank,pullerpettank,hunter,hunterpettank]}) {
-            /call BroadCast ${IRCOn} ${EQBCOn} t "${charname} is now above ${resume}% ${stat} resuming activity."
+            /call BroadCast ${EQBCOn} t "${charname} is now above ${resume}% ${stat} resuming activity."
         } else {
         /echo ${charname} is now above ${resume}% ${stat} resuming activity.
         }
@@ -8687,16 +8703,16 @@ Sub Main
 | ----------------------------------------------------------------------------
 | SUB: Bind Switch
 | ----------------------------------------------------------------------------
-    Sub Bind_Switch
+    Sub Bind_Switch(NewTarID)
         /if (${MainAssist.Equal[${Me}]}) /return 
-        /declare WasAttacking int local ${Attacking}
-        /echo New target called!
-        /call CombatReset 1 switch
-        /call Assist
-        /if (${WasAttacking}) {
-            /squelch /attack on
-            /varset Attacking 1
-        }
+        |/declare WasAttacking int local ${Attacking}
+		/call CombatReset 1 switch
+        /echo New target called
+        /varset MyTargetID ${NewTarID}
+		/squelch /target id ${NewTarID}
+		/if (${DPSOn} && ${MeleeOn} && ${Target.PctHPs}<=${AssistAt}) /nav id ${MyTargetID}
+        
+		/call EngageTarget
     /return
 
 | ----------------------------------------------------------------------------
@@ -8986,17 +9002,17 @@ Sub Main
 | SUB: Event Task Update - EQBC message
 | ----------------------------------------------------------------------------
     Sub Event_TaskUpdate(Line,name)
-       /call BroadCast ${IRCOn} ${EQBCOn} t "Task updated...(${name})"
+       /call BroadCast ${EQBCOn} t "Task updated...(${name})"
     /return
 | ----------------------------------------------------------------------------
 | SUB: Event Gain Something - EQBC message
 | ----------------------------------------------------------------------------
     Sub Event_GainSomething(string Line,string text)
-        /if (!${EQBCOn} && !${IRCOn}) /return
+        /if (!${EQBCOn}) /return
         /if (${Line.Find["ABILITY POINT!"]}) {
-            /call BroadCast ${IRCOn} ${EQBCOn} w "${Me.Name} gained an AA, now has ${Me.AAPoints} unspent"
+            /call BroadCast ${EQBCOn} w "${Me.Name} gained an AA, now has ${Me.AAPoints} unspent"
         } else /if (${Line.Find[LEVEL]}) {
-            /call BroadCast ${IRCOn} ${EQBCOn} w "${Me.Name} gained a level, now is Level ${Me.Level}"
+            /call BroadCast ${EQBCOn} w "${Me.Name} gained a level, now is Level ${Me.Level}"
             /if (${GMailEvents.Find[level]}) /call GmailSend "${Me.Name} gained a level, I am Level ${Me.Level}"
            | Recalculate pull when level gained
             /if (${PullLevel.Find[auto]}) {
@@ -9139,7 +9155,7 @@ Sub Main
     Sub Event_GUEQBC(Message,GUName,GUText)
         /if (${GUName.Equal[${Me.CleanName}]}) /return
         /if (${Macro.IsTLO[EQBC]}) {
-            /if (${EQBC.Connected} && ${Select[${EQBCOn},2,4]}) /call BroadCast ${IRCOn} ${EQBCOn} p "${GUName} tells Guild: ${GUText} "
+            /if (${EQBC.Connected} && ${Select[${EQBCOn},2,4]}) /call BroadCast ${EQBCOn} p "${GUName} tells Guild: ${GUText} "
         }
     /return
 | ----------------------------------------------------------------------------
@@ -9148,7 +9164,7 @@ Sub Main
     Sub Event_FSEQBC(Message,FSName,FSText)
         /if (${FSName.Equal[${Me.CleanName}]}) /return
         /if (${Macro.IsTLO[EQBC]}) {
-            /if (${EQBC.Connected} && ${Select[${EQBCOn},3,4]}) /call BroadCast ${IRCOn} ${EQBCOn} p "${FSName} tells Fellowship: ${FSText} "
+            /if (${EQBC.Connected} && ${Select[${EQBCOn},3,4]}) /call BroadCast ${EQBCOn} p "${FSName} tells Fellowship: ${FSText} "
         }
     /return
 | ----------------------------------------------------------------------------
@@ -9186,7 +9202,7 @@ Sub Main
                 /if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
 				/if (!${holding}) {
                     /echo [AHTools] Macro on hold due to player activity in camp radius.
-                    /call BroadCast ${IRCOn} ${EQBCOn} r "**PCS DETECTED IN CAMP RADIUS**"
+                    /call BroadCast ${EQBCOn} r "**PCS DETECTED IN CAMP RADIUS**"
                     /multiline ; /beep ; /timed 1 /beep ; /timed 1 /beep ; /timed 5 /beep ; /timed 5 /beep ; /timed 5 /beep ; /timed 5 /beep ; /timed 1 /beep ; /timed 1 /beep
                     /varset holding 1
                 }
@@ -9210,7 +9226,7 @@ Sub Main
                     /if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
 					/if (!${holding}) {
                         /echo [AHTools] Macro on hold due to GM Presence
-                        /call BroadCast ${IRCOn} ${EQBCOn} r "** GM DETECTED **"
+                        /call BroadCast ${EQBCOn} r "** GM DETECTED **"
                         /multiline ; /beep ; /timed 1 /beep ; /timed 1 /beep ; /timed 5 /beep ; /timed 5 /beep ; /timed 5 /beep ; /timed 5 /beep ; /timed 1 /beep ; /timed 1 /beep
                         /varset holding 1
                     }
@@ -9260,7 +9276,7 @@ Sub Main
         /declare BurnTarget string local
         /declare BurnTargetID int local
         /declare BurnThisArg3 string local
-        /call BroadCast ${IRCOn} ${EQBCOn} r "BURN ACTIVATED => Autobots Transform <="
+        /call BroadCast ${EQBCOn} r "BURN ACTIVATED => Autobots Transform <="
         /if (${UseTribute} && !${Me.TributeActive}) {
            /squelch /tribute personal on
            /varset TributeTimer 570s
@@ -9947,7 +9963,7 @@ Sub Main
                         /call CastWhat "${CuretoCast}" ${IniIDList.Arg[${j},|]} Cure 0
                     }
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) {
-                        /call BroadCast ${IRCOn} ${EQBCOn} o "CURING: >> ${Spawn[${IniIDList.Arg[${j},|]}].CleanName} << with ${CuretoCast}"
+                        /call BroadCast ${EQBCOn} o "CURING: >> ${Spawn[${IniIDList.Arg[${j},|]}].CleanName} << with ${CuretoCast}"
                         /delay 10
                     }
                 }
@@ -9988,7 +10004,7 @@ Sub Main
 | ----------------------------------------------------------------------------
 | SUB: BroadCast - Handles echos and messages in mq2irc and mq2eqbc
 | ----------------------------------------------------------------------------
-    Sub BroadCast(doirc, doeqbc, eqbcolor, message)
+    Sub BroadCast(doeqbc, eqbcolor, message)
         /if (${eqbcolor.Equal[null]}) /varset eqbcolor w
         /if (${doeqbc}) {
         /if (${Macro.IsTLO[EQBC]}) {
@@ -10005,8 +10021,7 @@ Sub Main
         } else {
             /echo ${message}
         }
-        /if (${Bool[${Plugin[MQ2IRC]}]} && ${doirc}) /i say ${message}
-        | /echo ${message}
+        
     /return
 | ----------------------------------------------------------------------------
 | SUB: Campfire ${Window[FellowshipWnd].Child[FP_CampPage].Child[FP_CampsiteViewer].Text}
@@ -10730,6 +10745,12 @@ Sub Main
         /echo -------------------------------------------------------------------------
     /return
 | -------------------------------------------------------------------------------------
+| SUB: CombatReset
+| ------------------------------------------------------------------------------------- 
+    Sub Bind_combatreset
+        /call CombatReset 0
+    /return
+| -------------------------------------------------------------------------------------
 | SUB: Bind WriteMySpell
 | ------------------------------------------------------------------------------------- 
     Sub Bind_WriteMySpells
@@ -11112,7 +11133,7 @@ Sub Main
                     /call AssignGroupRole unset "${Group.MasterLooter.Name}" 5
                     /delay 30 !${Group.MasterLooter.Name.Length}
                     /call AssignGroupRole set "${Group.MainAssist.Name}" 5
-                    /call BroadCast ${IRCOn} ${EQBCOn} r "Assigning ${Me} as Master Looter in Group Window"
+                    /call BroadCast ${EQBCOn} r "Assigning ${Me} as Master Looter in Group Window"
                     /varset LooterAssigned 1
                     /return
                 }
@@ -11128,7 +11149,7 @@ Sub Main
                         /if (${Group.MasterLooter.Name.Length} && ${Group.MasterLooter.Name.NotEqual[${Spawn[id ${IniIDList.Arg[${k},|]} group pc].CleanName}]}) /call AssignGroupRole unset "${Group.MasterLooter.Name}" 5
                         /delay 30 !${Group.MasterLooter.Name.Length}
                         /call AssignGroupRole set "${Spawn[id ${IniIDList.Arg[${k},|]} group pc].CleanName}" 5
-                        /call BroadCast ${IRCOn} ${EQBCOn} r "LOOT: Assigning ${Spawn[id ${IniIDList.Arg[${k},|]} group pc].CleanName} as Master Looter in Group Window"
+                        /call BroadCast ${EQBCOn} r "LOOT: Assigning ${Spawn[id ${IniIDList.Arg[${k},|]} group pc].CleanName} as Master Looter in Group Window"
                         /varset LooterAssigned 1
                         /return
                     }

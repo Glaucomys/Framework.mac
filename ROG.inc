@@ -13,13 +13,9 @@
  ***|
 Sub _ROG
 	/if (${DebugFramework}) /echo in class sub
-        /if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
-			|/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
-			/call NewCast "${Me}" "Heals"
-		} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
-			|/call CombatCast
-			|/call newcombatcast
-			/call NewCast ${MyTargetID} "DPS"
-		}
-
+	/if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
+		/call NewCast ${Me.ID} "Heals"
+	} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
+		/call NewCast ${MyTargetID} "DPS"
+	}
 /return 

@@ -4,8 +4,6 @@
 
 Sub _shd
 	/if (${Debug}) /echo _SK Enter Line#: ${Macro.CurLine}
-
-	
 	/if (${Select[${Role},tank,pettank,pullertank,pullerpettank,hunter,hunterpettank]} && ${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
 	    /varset ReturnToCamp 1
 		/call DoWeMove 1 CheckForCombat
@@ -26,17 +24,12 @@ Sub _shd
 		/if (${DebugFramework}) /echo defensive
 		/call SKDefense
 	} else /if (${SpawnSort[1,asc,PctAggro,xtarhater].PctAggro} < 100 && ${CombatStart} && ${Select[${Role},pullertank,tank]}) {
-		/if (${DebugFramework}) /echo aggro
-		|/call Mod_AggroCheck
 		/call NewCast ${SpawnSort[1,asc,PctAggro,xtarhater].ID} "Aggro"
 	} else /if (${DPSOn} && ${CombatStart} && (${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} || ${Spawn[${MyTargetID}].ID} || !${Me.Feigning})) {
-		/if (${DebugFramework}) /echo combat cast
 		/call NewCast ${MyTargetID} "DPS"
-		|/call CombatCast
-		|/call newcombatcast
-		
 	}
-	/if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat}) {
+	
+	/if (${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${PetAssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance}) {
 		/call CombatPet
 	}
 	

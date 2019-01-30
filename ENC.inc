@@ -12,7 +12,7 @@
  *  NOTE:
  ***|
 Sub _enc
-	
+	/if (${DebugFramework}) /echo in class sub
     /if (${MezOn}) {
 		/if (${DebugFramework}) /echo checking Mez
 		/varset MezBroke 0
@@ -20,17 +20,13 @@ Sub _enc
 		/if (!${MezBroke}) /call DoMezStuff
 	}
 	
-	/if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn}) {
+	/if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat}) {
 		/call CombatPet
-	} 
+	}
 	
 	/if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
-		/call NewCast "${Me}" "Heals"
-		|/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
+		/call NewCast ${Me.ID} "Heals"
 	} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
-		|/call CombatCast
-		/if (${DebugFramework}) /echo combatcast
-		|/call newcombatcast
 		/call NewCast ${MyTargetID} "DPS"
 	}
 

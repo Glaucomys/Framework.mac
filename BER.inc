@@ -13,14 +13,12 @@
  ***|
  
  Sub _BER
-	|/echo in class sub
-        /if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
-			/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
-		} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
-			|/call CombatCast
-			|/call newcombatcast
-			/call NewCast ${MyTargetID} "DPS"
-		}
+	/if (${DebugFramework}) /echo in class sub 
+	/if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
+		/call NewCast ${Me.ID} "Heals"
+	} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
+		/call NewCast ${MyTargetID} "DPS"
+	}
 
 /return 
 
@@ -35,10 +33,10 @@
 	/if (${Me.CombatAbilityReady[${Spell[Disconcerting Discipline].RankName}]}) {
 		/if (${DebugFramework}) /echo 1
 		/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Disconcerting Discipline].RankName}]}].ID}
-		
 	} else /if (${Me.ItemReady[${epicaxe}]}) {
 		/if (${DebugFramework}) /echo 2
-		/disc ${Me.CombatAbility[${Me.CombatAbility[${epicaxe}]}].ID}
+		/useitem "${epicaxe}"
+		
 	} else /if (${Me.AltAbilityReady[Focused Furious Rampage]}) {
 		/if (${DebugFramework}) /echo 3
 		/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Brutal Discipline].RankName}]}].ID}

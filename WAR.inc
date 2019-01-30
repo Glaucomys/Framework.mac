@@ -23,13 +23,8 @@ Sub _war
 		/if (${DebugFramework}) /echo defensive
 		/call WarDefense
 	} else /if (${SpawnSort[1,asc,PctAggro,xtarhater].PctAggro} < 100 && ${CombatStart} && ${Select[${Role},pullertank,tank]}) {
-		/if (${DebugFramework}) /echo aggro
-		|/call Mod_AggroCheck
 		/call NewCast ${SpawnSort[1,asc,PctAggro,xtarhater].ID} "Aggro"
 	} else /if (${DPSOn} && ${CombatStart} && (${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} || ${Spawn[${MyTargetID}].ID} || !${Me.Feigning})) {
-		/if (${DebugFramework}) /echo combat cast
-		|/call CombatCast
-		|/call newcombatcast
 		/call NewCast ${MyTargetID} "DPS"
 	}
 /return 

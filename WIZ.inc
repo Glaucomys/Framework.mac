@@ -12,21 +12,10 @@
  *  NOTE:
  ***|
 Sub _wiz
-
-	|/echo in class sub 
-	|/if (${Spawn[${MyTargetID}].PctHPs}<=${PetAssistAt} && ${PetOn} && ${PetCombatOn}) {
-	|	/echo in combatpet
-	|	/call CombatPet
-	|} else 
+	/if (${DebugFramework}) /echo in class sub 
 	/if (${HealsOn} && ${Me.PctHPs} <= ${Math.Calc[${${Me.Class.ShortName}Point}*.${tmpHealOverride}]}) {
-		/if (${DebugFramework}) /echo in heal
-		/call NewCast "${Me}" "Heals"
-		|/call newSingleHeal "${Me}" "PC" ${Me.PctHPs} 0 G
+		/call NewCast ${Me.ID} "Heals"
 	} else /if (${DPSOn} && ${CombatStart} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && !${Me.Feigning}) {
-		|/call CombatCast
-		|/call newcombatcast
-		/if (${DebugFramework}) /echo combatcast
 		/call NewCast ${MyTargetID} "DPS"
 	}
-	
 /return 
