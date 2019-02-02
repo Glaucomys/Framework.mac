@@ -12,7 +12,7 @@
  *  NOTE:
  ***|
 Sub _war
-	|/echo in war sub
+	/if (${DebugFramework}) /echo in class sub 
 	
 	/if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
 	   /varset ReturnToCamp 1

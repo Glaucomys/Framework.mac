@@ -100,12 +100,14 @@
 		} else {
 			/echo \aw Waiting on someone that knows how to heal to \ar rez me
 		}
+		/if (${IAmDead} && ${CampZone}==${Zone.ID} && (${Me.Buff[Resurrection Sickness].ID} || ${SpawnCount[pccorpse ${Me}]}==0) ) /varset IAmDead 0
 	/return
 
 |----------------------------------------------------------------------------
 |- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
 |---------------------------------------------------------------------------- 
-Sub NewCast(TarID, Array, Spell)
+Sub NewCast(CastTarID, Array, spellcast)
+	/if (${DebugCombat}) /echo \atDEBUG NewCast Enter. \agLine#: ${Macro.CurLine}
 	/doevents 
 	
 	/declare i int local
@@ -117,53 +119,40 @@ Sub NewCast(TarID, Array, Spell)
 	/declare MaxTryNum int local 2
 	/declare TryNum int local 0
 	/declare CondNo      int      local 0
+	/declare TarID      int      local ${CastTarID}
+	/declare WaitTimerCD2 timer local 
 	
-	|/if (!${Bool[${Spell}]}) {
-	|	/varset CastThis ${Spell}
-	|	/goto :castnow
-	|}
-
-	/if (${Target.ID}!=${TarID} && ${Spawn[id ${TarID}].ID}) /call CastTarget ${TarID}
 	/for i 1 to ${${Array}.Size}
-		
-		/varset CastThis ${${Array}[${i}].Arg[1,|]}
-		|/while (1) {
-			|/if (!${CastThis.Find[script]} && !${CastThis.Find[command:]} &&  (!${Me.SpellInCooldown} && !${IAmABard} && !${Me.SpellReady[${Spell[${CastThis}].RankName}]}) && !${Me.AltAbilityReady[${CastThis}]} && !${Me.CombatAbilityReady[${Spell[${CastThis}].RankName}]} && !${Me.AbilityReady[${CastThis}]} && !${Me.ItemReady[${CastThis}]}) /break
-			
-			|/echo ${CastThis} on ${TarID} from NewCast
-			
-			|/if (!${Bool[${CastThis}]}) /break 
-			
+	
+		/if (${Bool[${spellcast}]}) {
+			/varset CastThis ${spellcast}
+		} else {
+			/varset CastThis ${${Array}[${i}].Arg[1,|]}
+		}
+		/while (1) {
+			|/if (${${Array}[${i}].Find[|ambush]} || !${Bool[${${Array}[${i}].Arg[1,|]}]}) /break
+			/if (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[|mob]} || ${${Array}[${i}].Arg[3,|].Find[|tap]}) && ${DPSOn} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && ${CombatStart}) {
+				/varset TarID ${MyTargetID}
+			} else /if (${Bool[${${Array}[${i}].Arg[3,|]}]} && ${${Array}[${i}].Arg[3,|].Find[|MA]}) {
+				/varset TarID ${Spawn[=${MainAssist}].ID}
+			} else {
+				/varset TarID ${CastTarID}
+			}
+			/if (${Target.ID}!=${TarID} && ${Spawn[id ${TarID}].ID}) /call CastTarget ${TarID}
+			/if (${Spawn[${TarID}].Type.NotEqual[pet]} && ${${Array}[i].Arg[3,|].Equal[pet]}) /break
 			/if (${Spawn[${TarID}].Type.Equal[Corpse]} || !${Spawn[${TarID}].ID}) {
 				/if (${DebugCombat}) /echo CombatCast: Return from CombatCast cause my target is a corpse or dead or DPSPaused ${DPSPaused}. \agLine#: ${Macro.CurLine}
 				/return
 			}
-			
-			|/if (${MezOn}) {
-			|	/varset MezBroke 0
-			|	/doevents MezBroke
-			|	/if (!${MezBroke}) {
-			|		/varset GoMByPass 1
-			|		/call DoMezStuff CombatCast
-			|		/varset GoMByPass 0
-			|	}
-			|}
-			
 			/if (${ConOn} && ${${Array}[${i}].Find[|cond]}) {
 				/varset CondNo ${${Array}[${i}].Mid[${Math.Calc[${${Array}[${i}].Find[|cond]}+5]},3]}
 			} else {
 				/varset CondNo 0
 			}
-		
-			
-			|/if (${${Array}[${i}].Find[|ambush]}) /break
-			
 			/if (${CondNo}==0 || (${CondNo} && ${If[${Cond[${CondNo}]},1,0]})) {
-				|/echo ${CastThis} in Conditions on ${TarID}
-				:castnow
-				|/if (${Spell[${CastThis}].CastTime}) /call StopMoving 
+			|/echo ${CastThis}
+				/if (${Spell[${CastThis}].CastTime}) /call StopMoving
 				/if (${CastThis.Find[command:]}) {
-					
 					/if (${Bool[${${Array}[${i}].Arg[4,|]}]}) {
 						/docommand ${${Array}[${i}].Arg[3,|]} ${${Array}[${i}].Arg[4,|]}
 					} else {
@@ -172,7 +161,6 @@ Sub NewCast(TarID, Array, Spell)
 					/if (${DebugFramework}) /echo ${CastThis} Command ${TarID} from NewCast
 					/if (${EQBCOn}) /call BroadCast ${EQBCOn} r "Command >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
 				} else /if (${CastThis.Find[script]}) {
-					
 					/call script_${Me.Class.ShortName}
 					/if (${DebugFramework}) /echo ${CastThis} Script ${TarID} from NewCast
 					/if (${EQBCOn}) /call BroadCast ${EQBCOn} r "Script >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
@@ -212,9 +200,9 @@ Sub NewCast(TarID, Array, Spell)
 						/if (${Array.NotEqual[Burn]}) /return ${CastResult}
 					}
 				} else /if (${Me.CombatAbility[${CastThis}]} && !${Me.CombatAbilityTimer[${CastThis}]} && ${Me.CombatAbilityReady[${CastThis}]} && ${Spell[${CastThis}].EnduranceCost}<${Me.Endurance}) {
-					/declare WaitTimerCD2 timer local 
-					/if (!${Spell[${CastThis}].Duration} || (${Spell[${CastThis}].Duration} && ${Spell[${CastThis}].TargetType.Equal[Self]} && !${Me.ActiveDisc.ID}) || ${Spell[${CastThis}].TargetType.NotEqual[Self]} || ${Spell[${CastThis}].DurationWindow}) {
-					/varset WaitTimerCD2 30
+					|/echo !${Spell[${CastThis}].Duration} || (${Spell[${CastThis}].Duration} && ${Spell[${CastThis}].TargetType.Equal[Self]} && !${Me.ActiveDisc.ID}) || ${Spell[${CastThis}].TargetType.NotEqual[Self]} || ${Spell[${CastThis}].DurationWindow}
+					|/if (!${Spell[${CastThis}].Duration} || (${Spell[${CastThis}].Duration} && ${Spell[${CastThis}].TargetType.Equal[Self]} && !${Me.ActiveDisc.ID}) || ${Spell[${CastThis}].TargetType.NotEqual[Self]} || ${Spell[${CastThis}].DurationWindow}) {
+						/varset WaitTimerCD2 30
 						/while (${Me.CombatAbilityReady[${CastThis}]} && ${WaitTimerCD2}) {
 							/disc ${Me.CombatAbility[${Me.CombatAbility[${CastThis}]}].ID}
 							/delay 5
@@ -223,7 +211,7 @@ Sub NewCast(TarID, Array, Spell)
 						/varset CastResult CAST_SUCCESS
 						/if (${DebugFramework}) /echo ## Disc >> ${CastThis} << on ${TarID} from ${Array}. Cast Result ${CastResult}
 						/if (${EQBCOn} && (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]})) /call BroadCast ${EQBCOn} r "Disc >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
-					}
+					|}
 					/if (${Array.NotEqual[Burn]}) /return ${CastResult}
 				} else /if (${Me.Ability[${CastThis}]} && ${Me.AbilityReady[${CastThis}]}) {
 					
@@ -281,21 +269,22 @@ Sub NewCast(TarID, Array, Spell)
 						/if (${DebugFramework}) /echo Skip Casting ${CastThis}. Spell Not Memed.
 						/varset CastResult CAST_NO_RESULT
 					}
-				
 				} else {
-						/if (${DebugFramework}) /echo in the cast garbage bin ${CastThis}
+					/if (${DebugFramework}) /echo in the cast garbage bin ${CastThis}
 				}
 				
 			}
-		|}
+			/break
+		}
 	/next i
-	
+	/if (${DebugCombat}) /echo \atDEBUG NewCast leave. \agLine#: ${Macro.CurLine}
 /return
 
 |----------------------------------------------------------------------------
 |- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
 |---------------------------------------------------------------------------- 
 Sub OLDNewCast(TarID, Array, Spell)
+
 	/doevents 
 	
 	/declare i int local
@@ -493,9 +482,9 @@ Sub OLDNewCast(TarID, Array, Spell)
 |- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
 |---------------------------------------------------------------------------- 
 
-	Sub FindTarget(int callfrom)
+	Sub FORMAsFindTarget(int callfrom)
 		/declare TempTargetID int local
-		|/echo ${callfrom} Finding Something to kill!
+		/if (${DebugFramework}) /echo ${callfrom} Finding Something to kill!
 		/varset MyTargetID 0
 		/varset MyTargetName NULL
 		/if (${Spawn[xtarhater named].ID}) {
@@ -538,10 +527,72 @@ Sub OLDNewCast(TarID, Array, Spell)
 		|	/varset MyTargetID ${Spawn[${SpawnSearchType} id ${SpawnSort[1,desc,PctHPs,xtarhater].ID}].ID}
 		|}
 	|--Target the new target
-		/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
-			/squelch /target id ${MyTargetID}
-			/delay 10 ${Target.ID}==${MyTargetID}
+		/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) {
+			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
+				/squelch /target id ${MyTargetID}
+				/delay 10 ${Target.ID}==${MyTargetID}
+			}
+			/call EngageTarget
 		}
+	/return 
+
+|----------------------------------------------------------------------------
+|- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
+|---------------------------------------------------------------------------- 
+
+	Sub FindTarget(int callfrom)
+		/declare TempTargetID int local
+		/if (${DebugCombat}) /echo \atDEBUG FindTarget Enter Callfrom: ${callfrom} \agLine#: ${Macro.CurLine}
+		/varset MyTargetID 0
+		/varset MyTargetName NULL
+		/if (${Spawn[xtarhater named].ID}) {
+		|${Ini[${InfoFileName},${ZoneName},MezImmune].Find[${Spawn[xtarhater named]}]}
+			/varset TempTargetID ${Spawn[xtarhater named].ID}
+			/call BroadCast ${EQBCOn} y "Grabbing Namer -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+		} else /if (${Alert[4].Size} && ${Spawn[xtarhater alert 4].ID} && ${Spawn[xtarhater alert 4].Type.NotEqual[Corpse]}) {
+			/varset TempTargetID ${NearestSpawn[1, xtarhater alert 4].ID}
+			/call BroadCast ${EQBCOn} y "Grabbing MEZ Immune -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+			
+		} else {
+			/varset TempTargetID ${SpawnSort[1,asc,PctHPs,xtarhater].ID}
+			/call BroadCast ${EQBCOn} y "Grabbing Lowest HP Mob -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+		}
+			
+		/call ValidateTarget ${TempTargetID}
+			
+		/if (${ValidTarget}==0) {
+			/if (${Target.ID}) /squelch /alert add 2 id ${Target.ID}
+			/varset MyTargetID 0
+			/varset MyTargetName
+			/echo invalid target
+			/return
+		} else {
+			/if (${Target.ID}!=${TempTargetID}) {
+			   /squelch /target clear
+			   /delay 10 !${Target.ID}
+			   /target id ${TempTargetID}
+			   /delay 10 ${Target.ID}
+			}
+		   /varset MyTargetID ${Target.ID}
+		   /varset MyTargetName ${Target.CleanName}
+		   /echo valid target ${Target.CleanName} ${Target.ID}
+		}
+	|--Check target matches MA if not based off lowest hp in XTarget
+		/if (${Target.ID}!=${Me.GroupAssistTarget.ID} && ${Group.MainAssist.ID}!=${Me.ID} && ${MyTargetID}!=${Me.GroupAssistTarget.ID} && ${Spawn[id ${Me.GroupAssistTarget.ID} ${SpawnSearchType}].ID}) {
+			/varset MyTargetID ${Me.GroupAssistTarget.ID}
+		} 
+		|else /if ((!${Group.MainAssist.ID} || ${Group.MainAssist.ID}==${Me.ID}) && ${Spawn[${SpawnSearchType} id ${SpawnSort[1,desc,PctHPs,xtarhater].ID}].ID}) {
+		|	/varset MyTargetID ${Spawn[${SpawnSearchType} id ${SpawnSort[1,desc,PctHPs,xtarhater].ID}].ID}
+		|}
+	|--Target the new target
+		/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) {
+			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
+				/squelch /target id ${MyTargetID}
+				/delay 10 ${Target.ID}==${MyTargetID}
+			}
+			/call EngageTarget
+		}
+		/if (${DebugCombat}) /echo \atDEBUG FindTarget leave. \agLine#: ${Macro.CurLine}
 	/return 
 
 |----------------------------------------------------------------------------
@@ -551,6 +602,7 @@ Sub OLDNewCast(TarID, Array, Spell)
 |- For classes that have a before combat move, it is recommended  to copy/paste this sub into new macro and rename. Add opening move ( ber, rog ) to just before turning on attack 
 |---------------------------------------------------------------------------- 
 	Sub EngageTarget
+		/if (${DebugCombat}) /echo \atDEBUG EngageTarget Enter \agLine#: ${Macro.CurLine}
 	:Engage
 		/echo Engaging >> ${MyTargetID}
 		/doevents
@@ -652,8 +704,7 @@ Sub OLDNewCast(TarID, Array, Spell)
 			|	/return
 			|}
 			
-			|/if (${DPSOn} || ${MeleeOn} || ${PetOn}) /call FindTarget
-			|/if (${DPSOn} || ${MeleeOn} || ${PetOn}) /call CombatTargetCheck
+
 			
 			/if (${Role.Equal[offtank]} && !${Spawn[=${MainAssist}].ID}) /switchma ${Me} tank 0
 			/if (${DebuffAllOn} && (${Role.NotEqual[puller]} || !${ChainPull})) {
@@ -672,7 +723,7 @@ Sub OLDNewCast(TarID, Array, Spell)
 				/range
 			}
 			
-			/if (!${NamedCheck} && (${BurnAllNamed} ||(!${BurnAllNamed} && ${Ini[${InfoFileName},${ZoneName},MobsToBurn].Find[${MyTargetName}]}))) {
+			/if (!${NamedCheck} && ((${BurnAllNamed} && ${Spawn[xtarhater named].ID} )||(!${BurnAllNamed} && ${Ini[${InfoFileName},${ZoneName},MobsToBurn].Find[${MyTargetName}]}))) {
 				/if (${UseTribute} && !${Me.TributeActive}) {
 				   /squelch /tribute personal on
 				   
@@ -710,27 +761,36 @@ Sub OLDNewCast(TarID, Array, Spell)
 				/if (${Role.Equal[puller]} && ${ChainPull} && ${DebuffAllOn}) /call DebuffCast ${MyTargetID} 1 
 				/if (${Role.Equal[puller]} && ${ChainPull} && ${DPSOn}) /call newcombatcast
 			}   
-			|  ||  (${Me.XTarget[1].ID} > 0 && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}
-			/if (${MyTargetID}==0 || (${Spawn[corpse id ${MyTargetID}].ID}) || (!${Spawn[targetable id ${MyTargetID}].ID}) || ${Me.Feigning} ||  (${Me.XTarget[1].ID} > 0 && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}) ) {
-				/call CombatReset 0 combat
-				/varset MyTargetID 0
-				/varset healcount 0
-				/if (${UseTribute} && ${Me.TributeActive}) {
-				   /squelch /tribute personal off
-				   
-				}
-				/break					
-			}
+			
+			/if (${DPSPaused} || ${MyTargetID}==0 || ${Spawn[corpse id ${MyTargetID}].ID} || !${Spawn[targetable id ${MyTargetID}].ID} || ${Me.Feigning} ||  (${Me.XTarget[1].ID} > 0 && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}) ) /break
 
 			
 		}
-		
+		/call CombatReset 0 combat
+		/varset MyTargetID 0
+		/varset healcount 0
+		/if (${UseTribute} && ${Me.TributeActive}) {
+		   /squelch /tribute personal off
+		   
+		}
 		/if (${cyclecount}>0) {
-				/if (${DebugFramework}) /echo CYCLES: ${cyclecount}
-				/varset cyclecount 0
-			}
+			/if (${DebugFramework}) /echo CYCLES: ${cyclecount}
+			/varset cyclecount 0
+		}
 		/varset tmpHealOverride 99.99
+		/if (${DebugCombat}) /echo \atDEBUG EngageTarget leave. \agLine#: ${Macro.CurLine}
 	/return
 	
+sub watch_for_death()
+	| check for current flags. watch for rez box if I have them
+	/if (${IAmDead}) /return TRUE
 	
+	| check death states
+	/if (${Me.State.Equal[HOVER]} || ${Me.Hovering} || ${Me.Dead}) {
+		/if (${Me.Casting.ID}) /stopcast
+		/return TRUE
 	
+	| did I just die and get sent to bind ?
+	/if (${Me.Buff[Resurrection Sickness].ID} && ${Zone.ID} == ${Me.ZoneBound.ID}) /return TRUE
+
+/return 

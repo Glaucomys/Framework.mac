@@ -12,7 +12,7 @@
  *  NOTE:
  ***|
  Sub _CLR
-	/if (${DebugFramework}) /echo in CLR sub
+	/if (${DebugFramework}) /echo in class sub 
 
 	/if (${Spawn[${MainAssist}].Type.NotEqual[Corpse]} && ${Spawn[${MainAssist}].PctHPs} <= ${Math.Calc[${${MainAssistClass}Point}*.${tmpHealOverride}]}) {
 		/if (${DebugFramework}) /echo Going to heal MA "${MainAssist}" "${MainAssistType}" ${Spawn[${MainAssist} ${MainAssistType}].PctHPs} ${Macro.CurLine}
@@ -29,7 +29,7 @@
 	|/varset tmpHealOverride 99.99
 	/if (${DebugHeal}) /echo \amDEBUGHEALS Class Sub leave \agLine#: ${Macro.CurLine}
 	
-	/if (${AutoRezOn}) /call RezCheck
+	/if (${AutoRezOn} && ${SpawnCount[PC corpse radius 100]} > 0) /call RezCheck
 	
 /return 
 
