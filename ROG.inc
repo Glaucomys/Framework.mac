@@ -20,3 +20,17 @@ Sub _ROG
 		/call NewCast ${MyTargetID} "DPS"
 	}
 /return 
+| ----------------------------------------------------------------------------
+| SUB: Roguestuff
+| ----------------------------------------------------------------------------
+    Sub Roguestuff
+        /if (${Me.Hovering}) /return
+        /if (${Debug}) /echo \atDEBUGBUFFS Roguestuff Enter \agLine#: ${Macro.CurLine}
+        /if (${Me.Class.Name.Equal[Rogue]} && !${Me.Combat} && ${AutoHide}) {
+            /if (${Me.AbilityReady[hide]} && ${Me.AbilityReady[sneak]}) {
+                /doability hide
+                /doability sneak
+            }
+        }
+    /if (${Debug}) /echo \atDEBUGBUFFS Roguestuff Leave \agLine#: ${Macro.CurLine}
+    /return
