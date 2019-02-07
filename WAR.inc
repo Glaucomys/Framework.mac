@@ -14,17 +14,19 @@
 Sub _war
 	/if (${DebugFramework}) /echo in class sub 
 	
-	/if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
-	   /varset ReturnToCamp 1
-	   /call DoWeMove 1 CheckForCombat
-	}
+	|/if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
+	|   /varset ReturnToCamp 1
+	|   /call DoWeMove 1 CheckForCombat
+	|}
 	
 	/if (${Me.CombatState.Equal[COMBAT]} && ${Select[${Me.Class.ShortName},WAR,PAL,SHD]} && ${CombatStart} && !${Me.ActiveDisc.ID} && (${Target.Named} || ${Me.XTarget}>1) && ${Target.Distance}<75) {
 		/if (${DebugFramework}) /echo defensive
 		/call WarDefense
 	} else /if (${SpawnSort[1,asc,PctAggro,xtarhater].PctAggro} < 100 && ${CombatStart} && ${Select[${Role},pullertank,tank]}) {
+		/if (${DebugFramework}) /echo Aggro
 		/call NewCast ${SpawnSort[1,asc,PctAggro,xtarhater].ID} "Aggro"
 	} else /if (${DPSOn} && ${CombatStart} && (${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} || ${Spawn[${MyTargetID}].ID} || !${Me.Feigning})) {
+		/if (${DebugFramework}) /echo DPS
 		/call NewCast ${MyTargetID} "DPS"
 	}
 /return 
@@ -41,7 +43,7 @@ Sub _war
  *  NOTE:
  ***|
 Sub WarDefense
-	|/echo in War defensive
+	/echo in War defensive
 	/if (!${Me.ActiveDisc.ID}) {
 	
 		/if (${Me.PctEndurance}>5) {

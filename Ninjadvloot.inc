@@ -162,7 +162,7 @@ Sub LootMobs
     /declare i int local
     /declare CorpseList string local 
     /declare CorpseToLoot int local
-    /declare ZDist float local ${Math.Distance[${Target.Z}:${Me.Z}]}
+    /declare ZDist2 float local ${Math.Distance[${Target.Z}:${Me.Z}]}
     /declare ClosestCorpse int local
     /declare CorpseCount int local 0
     /for i 1 to ${DeadCount}
@@ -190,7 +190,7 @@ Sub LootMobs
             /keypress back
         }
                 /delay 3s ${MoveTo.Stopped} && !${Me.Moving}
-                /call ZCheck ${ZDist} 8
+                /call ZCheck ${ZDist2} 8
                 /if (${Target.ID}) /face fast
             }
             /if (${Target.Distance}<12) {

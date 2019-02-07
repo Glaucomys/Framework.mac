@@ -13,6 +13,18 @@
  ***|
 Sub _pal
 	/if (${DebugFramework}) /echo in class sub
+	/if (${Select[${Role},tank,pettank,pullertank,pullerpettank,hunter,hunterpettank]} && ${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
+	    
+		/varset ReturnToCamp 1
+		/call DoWeMove 1 CheckForCombat 
+		/if (${MyTargetID}) {
+			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
+				/squelch /target id ${MyTargetID}
+				/delay 10 ${Target.ID}==${MyTargetID}
+			}
+		}
+		/if (${Target.ID}) /face ${If[${FaceMobOn}==2,nolook,fast nolook]}
+	}
 	/if (${Me.CombatState.Equal[COMBAT]} && ${Select[${Me.Class.ShortName},WAR,PAL,SHD]} && ${CombatStart} && !${Me.ActiveDisc.ID} && (${Target.Named} || ${Me.XTarget}>3) && ${Target.Distance}<75) {
 		/if (${DebugFramework}) /echo defensive
 		/call PalDefense

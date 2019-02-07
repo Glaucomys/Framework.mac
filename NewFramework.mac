@@ -1,0 +1,264 @@
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+|Framework.mac
+| This is a multipurpose ini-driven modular mac intended for speed 
+| Version 2.0 Updated 1/20/19
+| All mac components should be placed in a folder called "framework" inside of the macro folder
+| Usage: /mac framework/framework.mac
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+#warning
+#turbo 120
+
+|#define TESTFUNCTION "/call test_function"
+
+|****************************************| GENERAL EVENTS |***********************************************|
+#Event Camping           "#*#seconds to prepare your camp."
+#Event Zoned             "LOADING, PLEASE WAIT#*#"
+#Event Zoned             "You have entered#*#"
+#Event ImDead            "#*#Returning to Bind Location#*#"
+#Event ImDead            "You died."
+#Event ImDead            "You have been slain by#*#"
+
+
+#Event beginCast "#*#You begin casting#*#"
+#Event beginCast "#*#You begin singing#*#"
+#Event Fizzle "#*#Your spell fizzles!#*#"
+#Event Interrupted "#*#Your spell is interrupted#*#"
+#Event noTarget "#*#You must first select a target#*#"
+#Event noMana "#*#Insufficient Mana to cast#*#"
+#Event MezBroke          "#1# has been awakened by #2#."
+#Event Missing           "#*#You are missing some required components.#*#"
+
+#Event GoMOff            "The gift of magic fades."
+#Event GoMOff            "Your#*#gift of#*#mana fades."
+#Event GoMOn             "#*#granted#*#gift of#*#mana#*#"
+#Event GoMOn             "You feel strengthened by a gift of magic."
+#Event GoMOn             "You feel strengthened by magic."
+
+|****************************************| Combat |***********************************************|
+#Event CantHit           "You can't hit them from here."
+#Event CantSee           "You cannot see your target."
+
+|****************************************| Alliances |***********************************************|
+#Event BerAlli         "#1# is targeted by a demolisher's alliance."
+
+#include framework\quests.inc
+#include framework\ninjadvloot.inc
+#include framework\Raid.inc
+#include framework\common.inc
+#include framework\ber.inc
+#include framework\brd.inc
+#include framework\bst.inc
+#include framework\clr.inc
+#include framework\dru.inc
+#include framework\enc.inc
+#include framework\mag.inc
+#include framework\mnk.inc
+#include framework\nec.inc
+#include framework\pal.inc
+#include framework\rng.inc
+#include framework\rog.inc
+#include framework\shd.inc
+#include framework\shm.inc
+#include framework\war.inc
+#include framework\wiz.inc
+#include framework\Manual.inc
+
+/call CheckPlugin MQ2Nav
+/call CheckPlugin MQ2Autoloot
+/call CheckPlugin MQ2Worsthurt
+/call CheckPlugin MQ2Spawnsort
+/if (${Raid.Members}==0) /call CheckPlugin MQ2Posse
+/call Declares
+	/declare DebugFramework         int         outer       0
+    /declare CampXLoc               int         outer       ${Me.X}
+    /declare CampYLoc               int         outer       ${Me.Y}
+    /declare CampZLoc               int         outer       ${Me.Z}
+    /declare CampZone               int         outer       ${Zone.ID}
+	/declare IniLevel            int      outer
+	/if (${Me.Level}>=110) {
+		/varset IniLevel 110
+	} else /if (${Me.Level} >= 105) {
+		/varset IniLevel 105
+	} else /if (${Me.Level}>=100) {
+		/varset IniLevel 100
+	} else /if (${Me.Level}>=95) {
+		/varset IniLevel 95
+	} else /if (${Me.Level}>=90) {
+		/varset IniLevel 90
+	} else /if (${Me.Level}>=85) {
+		/varset IniLevel 85
+	} else /if (${Me.Level}>=80) {
+		/varset IniLevel 80
+	} else /if (${Me.Level}>=75) {
+		/varset IniLevel 75
+	} else /if (${Me.Level}>=70) {
+		/varset IniLevel 70
+	} else /if (${Me.Level}>=65) {
+		/varset IniLevel 65
+	} else /if (${Me.Level}>=65) {
+		/varset IniLevel 60
+	} else /if (${Me.Level}>=55) {
+		/varset IniLevel 55
+	} else /if (${Me.Level}>=50) {
+		/varset IniLevel 50
+	} else /if (${Me.Level}>=45) {
+		/varset IniLevel 45
+	} else /if (${Me.Level}>=40) {
+		/varset IniLevel 40
+	} else /if (${Me.Level}>=35) {
+		/varset IniLevel 35
+	} else /if (${Me.Level}>=30) {
+		/varset IniLevel 30
+	} else /if (${Me.Level}>=25) {
+		/varset IniLevel 25
+	} else /if (${Me.Level}>=20) {
+		/varset IniLevel 20
+	} else /if (${Me.Level}>=10) {
+		/varset IniLevel 10
+	} else /if (${Me.Level}>=5) {
+		/varset IniLevel 5
+	}
+/varset role ${Param0}
+${Param0} ${Param1}
+
+	/call SetupAdvLootVars
+    /if (${HealsOn}) {
+        /call SortArray Heals 100|100 >
+        |/call FindSingleHeals
+        |/call FindGroupHeals
+		/call SortArray GroupHeal 100|100 >
+    }
+	/if (${DPSOn}) {
+        /call SortArray DPS 1|1 <
+    }
+    /call WinTitle
+| -------------------------------------------------------------------------------------
+| Main Loop
+| -------------------------------------------------------------------------------------
+    /bc Entering Mainloop!
+	/while (1) {
+		/if (!${Role.Equal[manual]} && !${Select[${Zone.ID},345,344,202,203,279]}) {
+			/doevents
+			
+			|/if (${Me.Hovering}) /call DeathSub
+			/if (${ChainPull}!=2) {
+				/call CampfireBack
+				/if (${AFKToolsOn}) /call AFKTools
+				|/echo ${Math.Calc[(${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}].Int} FT 1
+				|/echo ${Math.Calc[(${DPSOn}  && ${Target.ID}!=${MyTargetID})].Int} FT 2
+				|/echo ${Math.Calc[(!${MyTargetID} || ${Spawn[${MyTargetID}].Type.Equal[Corpse]})].Int} EG
+				|Checking for combat
+				
+
+				/if (${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]} && (!${Me.Combat} || ${Target.ID}!=${MyTargetID} || ${MyTargetID}==0) && ${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call FindTarget 1
+				/if ((${MyTargetID}==0 || !${Spawn[targetable id ${MyTargetID}].ID} || ${Spawn[corpse id ${MyTargetID}].ID}) && ${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call FindTarget 2
+				/if (!${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) /call EngageTarget
+			
+				/call _${Me.Class.ShortName}
+				
+			
+				/if (${Math.Distance[${CampYLoc},${CampXLoc}]} >= 10 && ${Me.XTarget[1].ID}==0 && ${ReturnToCamp}) /call DoWeMove 0 mainloop
+				/if (${Me.CombatState.NotEqual[COMBAT]} && ${ChaseAssist}) /call DoWeChase
+				/if ((${CombatStart} || ${AggroTargetID} || ${Me.CombatState.NotEqual[COMBAT]})) /call DoMiscStuff
+				/if (${MercOn}) /call MercsDoWhat
+				/call CastMana MainLoop
+				
+				
+				/if (${PetOn}) {
+					/call DoPetStuff
+					|/bc 5.5
+					/call CheckPetBuffs
+					|/bc 5.75
+				}
+				/if (${Me.CombatState.NotEqual[COMBAT]}) {
+					/call WriteBuffs
+					/call WriteBuffsMerc
+					/call WriteBuffsPet
+				}
+				/if (${CuresOn}) /call CheckCures
+				/if (${BuffsOn} && (!${IAmDead} || !${Me.Invis} || !${ReadBuffsTimer})) /call CheckBuffs 0
+				
+				
+				/if (${Me.CombatState.NotEqual[COMBAT]}) {
+					/if (${MedOn}) /call DoWeMed
+					/if (${GroupWatchOn}) /call GroupWatch
+				}
+				
+				
+			} else {
+				/call AFKTools
+			}
+			
+			/if (${Select[${Role},puller,pullertank,pullerpettank,hunter,hunterpettank]}) {
+			
+				/if (!${PullMob}) /call FindMobToPull 1
+				/call PullCheck 
+				/varset PullMob 0
+				/if (${DPSOn} || ${MeleeOn}) {
+					/call CheckForCombat 0 MainLoop2
+				} else {
+					/call CheckForCombat 1 MainLoop3
+				}
+			}
+			/if (${LootOn}) /call LootStuff
+
+			|/delay 1
+		} else /if (${Role.Equal[manual]} && !${Select[${Zone.ID},345,344,202,203,279]}) {
+			/doevents
+			/call manual_${Me.Class.ShortName}
+			/if (${BuffsOn}) /call CheckBuffs
+			/if (${PetOn}) /call DoPetStuff
+		} else /if (!${Select[${Zone.ID},345,344,202,203,279]}) {
+			/call RezCheck
+		}
+    }
+
+/return
+	:OnExit
+	/invoke ${Macro.Undeclared}
+	/setchattitle MQ2
+	/end

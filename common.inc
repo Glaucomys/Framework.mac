@@ -131,15 +131,8 @@ Sub NewCast(CastTarID, Array, spellcast)
 		}
 		/while (1) {
 			|/if (${${Array}[${i}].Find[|ambush]} || !${Bool[${${Array}[${i}].Arg[1,|]}]}) /break
-			/if (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[|mob]} || ${${Array}[${i}].Arg[3,|].Find[|tap]}) && ${DPSOn} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && ${CombatStart}) {
-				/varset TarID ${MyTargetID}
-			} else /if (${Bool[${${Array}[${i}].Arg[3,|]}]} && ${${Array}[${i}].Arg[3,|].Find[|MA]}) {
-				/varset TarID ${Spawn[=${MainAssist}].ID}
-			} else {
-				/varset TarID ${CastTarID}
-			}
-			/if (${Target.ID}!=${TarID} && ${Spawn[id ${TarID}].ID}) /call CastTarget ${TarID}
-			/if (${Spawn[${TarID}].Type.NotEqual[pet]} && ${${Array}[i].Arg[3,|].Equal[pet]}) /break
+			
+			/if ((${Spawn[${TarID}].Type.NotEqual[pet]} && ${${Array}[i].Arg[3,|].Equal[pet]}) || (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[|mob]} || ${${Array}[${i}].Arg[3,|].Find[|tap]}) && !${CombatStart})) /break
 			/if (${Spawn[${TarID}].Type.Equal[Corpse]} || !${Spawn[${TarID}].ID}) {
 				/if (${DebugCombat}) /echo CombatCast: Return from CombatCast cause my target is a corpse or dead or DPSPaused ${DPSPaused}. \agLine#: ${Macro.CurLine}
 				/return
@@ -149,9 +142,20 @@ Sub NewCast(CastTarID, Array, spellcast)
 			} else {
 				/varset CondNo 0
 			}
-			/if (${CondNo}==0 || (${CondNo} && ${If[${Cond[${CondNo}]},1,0]})) {
-			|/echo ${CastThis}
-				/if (${Spell[${CastThis}].CastTime}) /call StopMoving
+			/if ((${CondNo}==0 || (${CondNo} && ${If[${Cond[${CondNo}]},1,0]})) && ${CastCheck[${CastThis}]}) {
+				/if (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[|mob]} || ${${Array}[${i}].Arg[3,|].Find[|tap]}) && ${DPSOn} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && ${CombatStart}) {
+					/if (${DebugFramework}) /echo Casting ${CastThis} on Target ${Spawn[${MyTargetID}].CleanName} 
+					/varset TarID ${MyTargetID}
+				} else /if (${Bool[${${Array}[${i}].Arg[3,|]}]} && ${${Array}[${i}].Arg[3,|].Find[|MA]}) {
+					/if (${DebugFramework}) /echo Casting ${CastThis} on Target ${Spawn[${Spawn[=${MainAssist}].ID}].CleanName}
+					/varset TarID ${Spawn[=${MainAssist}].ID}
+				} else {
+					/if (${DebugFramework}) /echo Casting ${CastThis} on Target ${Spawn[${CastTarID}].CleanName} 
+					/varset TarID ${CastTarID}
+				}
+				/if (${Target.ID}!=${TarID} && ${Spawn[id ${TarID}].ID}) /call CastTarget ${TarID}
+				|/echo ${CastThis}
+				/if (${Me.Moving} && ${Spell[${CastThis}].CastTime}) /call StopMoving
 				/if (${CastThis.Find[command:]}) {
 					/if (${Bool[${${Array}[${i}].Arg[4,|]}]}) {
 						/docommand ${${Array}[${i}].Arg[3,|]} ${${Array}[${i}].Arg[4,|]}
@@ -185,7 +189,7 @@ Sub NewCast(CastTarID, Array, spellcast)
 						/if (${EQBCOn}) /call BroadCast ${EQBCOn} r "Item >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
 						/if (${Array.NotEqual[Burn]}) /return ${CastResult}
 					}
-				} else /if (${Me.AltAbility[${CastThis}]} && ${Me.AltAbilityReady[${CastThis}]} && ${Me.AltAbility[${CastThis}].Type}!=5 && !${FindItem[=${CastThis}].ID})  { 
+				} else /if (${CastThis.NotEqual[Feralist's Unity]} && ${Me.AltAbility[${CastThis}]} && ${Me.AltAbilityReady[${CastThis}]} && ${Me.AltAbility[${CastThis}].Type}!=5 && !${FindItem[=${CastThis}].ID})  { 
 					
 					/alt act ${Me.AltAbility[${CastThis}].ID}
 					/call CastWait "${CastThis}"
@@ -202,12 +206,11 @@ Sub NewCast(CastTarID, Array, spellcast)
 				} else /if (${Me.CombatAbility[${CastThis}]} && !${Me.CombatAbilityTimer[${CastThis}]} && ${Me.CombatAbilityReady[${CastThis}]} && ${Spell[${CastThis}].EnduranceCost}<${Me.Endurance}) {
 					|/echo !${Spell[${CastThis}].Duration} || (${Spell[${CastThis}].Duration} && ${Spell[${CastThis}].TargetType.Equal[Self]} && !${Me.ActiveDisc.ID}) || ${Spell[${CastThis}].TargetType.NotEqual[Self]} || ${Spell[${CastThis}].DurationWindow}
 					|/if (!${Spell[${CastThis}].Duration} || (${Spell[${CastThis}].Duration} && ${Spell[${CastThis}].TargetType.Equal[Self]} && !${Me.ActiveDisc.ID}) || ${Spell[${CastThis}].TargetType.NotEqual[Self]} || ${Spell[${CastThis}].DurationWindow}) {
-						/varset WaitTimerCD2 30
-						/while (${Me.CombatAbilityReady[${CastThis}]} && ${WaitTimerCD2}) {
+						|/varset WaitTimerCD2 30
+						|/while (${Me.CombatAbilityReady[${CastThis}]} && ${WaitTimerCD2}) {
 							/disc ${Me.CombatAbility[${Me.CombatAbility[${CastThis}]}].ID}
-							/delay 5
-
-						}
+						|	/delay 5
+						|}
 						/varset CastResult CAST_SUCCESS
 						/if (${DebugFramework}) /echo ## Disc >> ${CastThis} << on ${TarID} from ${Array}. Cast Result ${CastResult}
 						/if (${EQBCOn} && (${CastResult.Equal[CAST_SUCCESS]} || ${CastResult.Equal[CAST_RESIST]} || ${CastResult.Equal[CAST_TAKEHOLD]})) /call BroadCast ${EQBCOn} r "Disc >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
@@ -480,64 +483,7 @@ Sub OLDNewCast(TarID, Array, Spell)
 
 |----------------------------------------------------------------------------
 |- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
-|---------------------------------------------------------------------------- 
-
-	Sub FORMAsFindTarget(int callfrom)
-		/declare TempTargetID int local
-		/if (${DebugFramework}) /echo ${callfrom} Finding Something to kill!
-		/varset MyTargetID 0
-		/varset MyTargetName NULL
-		/if (${Spawn[xtarhater named].ID}) {
-		|${Ini[${InfoFileName},${ZoneName},MezImmune].Find[${Spawn[xtarhater named]}]}
-			/varset TempTargetID ${Spawn[xtarhater named].ID}
-			/call BroadCast ${EQBCOn} y "Grabbing Namer -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
-		} else /if (${Alert[4].Size} && ${Spawn[xtarhater alert 4].ID} && ${Spawn[xtarhater alert 4].Type.NotEqual[Corpse]}) {
-			/varset TempTargetID ${NearestSpawn[1, xtarhater alert 4].ID}
-			/call BroadCast ${EQBCOn} y "Grabbing MEZ Immune -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
-			
-		} else {
-			/varset TempTargetID ${SpawnSort[1,asc,PctHPs,xtarhater].ID}
-			/call BroadCast ${EQBCOn} y "Grabbing Lowest HP Mob -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
-		}
-			
-		/call ValidateTarget ${TempTargetID}
-			
-		/if (${ValidTarget}==0) {
-			/if (${Target.ID}) /squelch /alert add 2 id ${Target.ID}
-			/varset MyTargetID 0
-			/varset MyTargetName
-			/echo invalid target
-			/return
-		} else {
-			/if (${Target.ID}!=${TempTargetID}) {
-			   /squelch /target clear
-			   /delay 10 !${Target.ID}
-			   /target id ${TempTargetID}
-			   /delay 10 ${Target.ID}
-			}
-		   /varset MyTargetID ${Target.ID}
-		   /varset MyTargetName ${Target.CleanName}
-		   /echo valid target ${Target.CleanName} ${Target.ID}
-		}
-	|--Check target matches MA if not based off lowest hp in XTarget
-		/if (${Target.ID}!=${Me.GroupAssistTarget.ID} && ${Group.MainAssist.ID}!=${Me.ID} && ${MyTargetID}!=${Me.GroupAssistTarget.ID} && ${Spawn[id ${Me.GroupAssistTarget.ID} ${SpawnSearchType}].ID}) {
-			/varset MyTargetID ${Me.GroupAssistTarget.ID}
-		} 
-		|else /if ((!${Group.MainAssist.ID} || ${Group.MainAssist.ID}==${Me.ID}) && ${Spawn[${SpawnSearchType} id ${SpawnSort[1,desc,PctHPs,xtarhater].ID}].ID}) {
-		|	/varset MyTargetID ${Spawn[${SpawnSearchType} id ${SpawnSort[1,desc,PctHPs,xtarhater].ID}].ID}
-		|}
-	|--Target the new target
-		/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) {
-			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
-				/squelch /target id ${MyTargetID}
-				/delay 10 ${Target.ID}==${MyTargetID}
-			}
-			/call EngageTarget
-		}
-	/return 
-
-|----------------------------------------------------------------------------
-|- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
+|-|${Ini[${InfoFileName},${ZoneName},MezImmune].Find[${Spawn[xtarhater named]}]}
 |---------------------------------------------------------------------------- 
 
 	Sub FindTarget(int callfrom)
@@ -546,18 +492,17 @@ Sub OLDNewCast(TarID, Array, Spell)
 		/varset MyTargetID 0
 		/varset MyTargetName NULL
 		/if (${Spawn[xtarhater named].ID}) {
-		|${Ini[${InfoFileName},${ZoneName},MezImmune].Find[${Spawn[xtarhater named]}]}
 			/varset TempTargetID ${Spawn[xtarhater named].ID}
-			/call BroadCast ${EQBCOn} y "Grabbing Namer -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+			|/call BroadCast ${EQBCOn} y "Grabbing Namer -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
 		} else /if (${Alert[4].Size} && ${Spawn[xtarhater alert 4].ID} && ${Spawn[xtarhater alert 4].Type.NotEqual[Corpse]}) {
 			/varset TempTargetID ${NearestSpawn[1, xtarhater alert 4].ID}
-			/call BroadCast ${EQBCOn} y "Grabbing MEZ Immune -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+			|/call BroadCast ${EQBCOn} y "Grabbing MEZ Immune -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
 			
 		} else {
 			/varset TempTargetID ${SpawnSort[1,asc,PctHPs,xtarhater].ID}
-			/call BroadCast ${EQBCOn} y "Grabbing Lowest HP Mob -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
+			|/call BroadCast ${EQBCOn} y "Grabbing Lowest HP Mob -> ${Spawn[${TempTargetID}].Name} <- ID:${Spawn[${TempTargetID}].ID} "
 		}
-			
+		
 		/call ValidateTarget ${TempTargetID}
 			
 		/if (${ValidTarget}==0) {
@@ -577,6 +522,9 @@ Sub OLDNewCast(TarID, Array, Spell)
 		   /varset MyTargetName ${Target.CleanName}
 		   /echo valid target ${Target.CleanName} ${Target.ID}
 		}
+		|/if (${MainAssist.Equal[${Me}]} && !${Raid.Members}) {
+		|	/bc TANKING-> ${MyTargetName} <- ID:${MyTargetID}
+		|}
 	|--Check target matches MA if not based off lowest hp in XTarget
 		/if (${Target.ID}!=${Me.GroupAssistTarget.ID} && ${Group.MainAssist.ID}!=${Me.ID} && ${MyTargetID}!=${Me.GroupAssistTarget.ID} && ${Spawn[id ${Me.GroupAssistTarget.ID} ${SpawnSearchType}].ID}) {
 			/varset MyTargetID ${Me.GroupAssistTarget.ID}
@@ -585,12 +533,16 @@ Sub OLDNewCast(TarID, Array, Spell)
 		|	/varset MyTargetID ${Spawn[${SpawnSearchType} id ${SpawnSort[1,desc,PctHPs,xtarhater].ID}].ID}
 		|}
 	|--Target the new target
-		/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) {
-			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
-				/squelch /target id ${MyTargetID}
-				/delay 10 ${Target.ID}==${MyTargetID}
-			}
-			/call EngageTarget
+		|/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && (!${Target.Mezzed.ID} || ${Select[${Role},manual,petassist,tank,pettank,puller,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) {
+		|	/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
+		|		/squelch /target id ${MyTargetID}
+		|		/delay 10 ${Target.ID}==${MyTargetID}
+		|	}
+		|	/call EngageTarget
+		|}
+		/if (${Target.ID}!=${MyTargetID} && ${Spawn[npc id ${MyTargetID}].ID}) {
+			/squelch /target id ${MyTargetID}
+			/delay 10 ${Target.ID}==${MyTargetID}
 		}
 		/if (${DebugCombat}) /echo \atDEBUG FindTarget leave. \agLine#: ${Macro.CurLine}
 	/return 
@@ -610,6 +562,14 @@ Sub OLDNewCast(TarID, Array, Spell)
 		
 		/if (${Stick.Status.Equal[ON]}) /stick off
 		/if (${IAmDead} && ${CampZone}==${Zone.ID} && (${Me.Buff[Resurrection Sickness].ID} || ${SpawnCount[pccorpse ${Me}]}==0) ) /varset IAmDead 0
+		
+		/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn}) {
+				/squelch /target id ${MyTargetID}
+				/delay 10 ${Target.ID}==${MyTargetID}
+				/if (${MeleeOn}) /nav id ${MyTargetID}
+		}
+		
+		
 		/if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID} 2
 		|/if (${DPSOn} && ${MeleeOn} && !${AutoFireOn}) {
 		|	/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) {
@@ -706,6 +666,7 @@ Sub OLDNewCast(TarID, Array, Spell)
 			
 
 			
+			
 			/if (${Role.Equal[offtank]} && !${Spawn[=${MainAssist}].ID}) /switchma ${Me} tank 0
 			/if (${DebuffAllOn} && (${Role.NotEqual[puller]} || !${ChainPull})) {
 			   /call DoDebuffStuff ${MyTargetID}
@@ -717,19 +678,22 @@ Sub OLDNewCast(TarID, Array, Spell)
 			
 			/call _${Me.Class.ShortName}
 			|/echo past class sub call
-			/if (!${UseMQ2Melee} && ${Spawn[${MyTargetID}].Distance}>${Spawn[${MyTargetID}].MaxRangeTo} && ${MeleeOn} && !${Stick.Active}) {
+			/if (${Target.ID}!=${MyTargetID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].ID} && ${DPSOn} && ${MeleeOn}) /squelch /target id ${MyTargetID}
+			/if (${Spawn[${MyTargetID}].Distance}>${Spawn[${MyTargetID}].MaxRangeTo} && ${DPSOn} && ${MeleeOn} && !${Stick.Active}) {
 				/moveto id ${MyTargetID} mdist ${Spawn[${MyTargetID}].MaxRangeTo}
 			} else /if (${CombatStart} && ${AutoFireOn} && ${Target.ID}==${MyTargetID} && !${Bool[${Target.Mezzed.ID}]}) {
 				/range
-			}
-			
+			} 
+			/if (${MeleeOn} && !${Me.Combat} && ${Target.ID}) /attack on
 			/if (!${NamedCheck} && ((${BurnAllNamed} && ${Spawn[xtarhater named].ID} )||(!${BurnAllNamed} && ${Ini[${InfoFileName},${ZoneName},MobsToBurn].Find[${MyTargetName}]}))) {
+				/popup *** Mob:(${Target.CleanName}) is a NAMED!
 				/if (${UseTribute} && !${Me.TributeActive}) {
 				   /squelch /tribute personal on
 				   
 				}
+				/varset NamedCheck 1
 				/call NewCast ${MyTargetID} "Burn"
-				|/call NamedWatch 0
+			|	|/call NamedWatch 0
 			}
 			/if (${checkmana} && ${Me.PctMana}<65) /call CastMana combat
 			/call WriteDebuffs
@@ -769,6 +733,7 @@ Sub OLDNewCast(TarID, Array, Spell)
 		/call CombatReset 0 combat
 		/varset MyTargetID 0
 		/varset healcount 0
+		/varset CombatStart 0
 		/if (${UseTribute} && ${Me.TributeActive}) {
 		   /squelch /tribute personal off
 		   
@@ -783,14 +748,28 @@ Sub OLDNewCast(TarID, Array, Spell)
 	
 sub watch_for_death()
 	| check for current flags. watch for rez box if I have them
-	/if (${IAmDead}) /return TRUE
+	/if (${IAmDead}) {
+		/return TRUE
+	}
 	
 	| check death states
 	/if (${Me.State.Equal[HOVER]} || ${Me.Hovering} || ${Me.Dead}) {
 		/if (${Me.Casting.ID}) /stopcast
 		/return TRUE
+	}
 	
-	| did I just die and get sent to bind ?
-	/if (${Me.Buff[Resurrection Sickness].ID} && ${Zone.ID} == ${Me.ZoneBound.ID}) /return TRUE
+	/if (${Me.Buff[Resurrection Sickness].ID} && ${Zone.ID} == ${Me.ZoneBound.ID}) {
+		/return TRUE
+	}
+	
+/return FALSE
 
-/return 
+Sub CastCheck(CheckThis)
+	/if (${FindItem[=${CheckThis}].ID} && ${Me.ItemReady[=${CheckThis}]}) /return TRUE
+	/if (${Me.AltAbility[${CheckThis}]} && ${Me.AltAbilityReady[${CheckThis}]} && ${Me.AltAbility[${CheckThis}].Type}!=5 && !${FindItem[=${CheckThis}].ID}) /return TRUE
+	/if (${Me.CombatAbility[${CheckThis}]} && !${Me.CombatAbilityTimer[${CheckThis}]} && ${Me.CombatAbilityReady[${CheckThis}]} && ${Spell[${CheckThis}].EnduranceCost}<${Me.Endurance}) /return TRUE
+	/if (${Me.Ability[${CheckThis}]} && ${Me.AbilityReady[${CheckThis}]}) /return TRUE
+	/if (${Me.SpellReady[${CheckThis}]} && ${Me.Book[${CheckThis}]} && ${Spell[${CheckThis}].Mana}<${Me.CurrentMana}) /return TRUE
+	/if (${CheckThis.Find[command:]}) /return TRUE
+	/if (${CheckThis.Find[script]}) /return TRUE
+/return FALSE
