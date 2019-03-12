@@ -52,43 +52,18 @@
 #warning
 #turbo 120
 
-|#define TESTFUNCTION "/call test_function"
-
-|****************************************| GENERAL EVENTS |***********************************************|
-#Event Camping           "#*#seconds to prepare your camp."
-#Event Zoned             "LOADING, PLEASE WAIT#*#"
-#Event Zoned             "You have entered#*#"
-#Event ImDead            "#*#Returning to Bind Location#*#"
-#Event ImDead            "You died."
-#Event ImDead            "You have been slain by#*#"
+#Define AMIDEAD "/if (${watch_for_death[]}) /varset IAmDead 1"
+#Define DEADEXIT "/if (${Select[${Me.State},DEAD,FEIGN,STUN,BIND]} || ${IAmDead}) /return"
+#Define MOBINCAMP "/if (${Me.XTarget[1].ID} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /return"
 
 
-#Event beginCast "#*#You begin casting#*#"
-#Event beginCast "#*#You begin singing#*#"
-#Event Fizzle "#*#Your spell fizzles!#*#"
-#Event Interrupted "#*#Your spell is interrupted#*#"
-#Event noTarget "#*#You must first select a target#*#"
-#Event noMana "#*#Insufficient Mana to cast#*#"
-#Event MezBroke          "#1# has been awakened by #2#."
-#Event Missing           "#*#You are missing some required components.#*#"
-
-#Event GoMOff            "The gift of magic fades."
-#Event GoMOff            "Your#*#gift of#*#mana fades."
-#Event GoMOn             "#*#granted#*#gift of#*#mana#*#"
-#Event GoMOn             "You feel strengthened by a gift of magic."
-#Event GoMOn             "You feel strengthened by magic."
-
-|****************************************| Combat |***********************************************|
-#Event CantHit           "You can't hit them from here."
-#Event CantSee           "You cannot see your target."
-
-|****************************************| Alliances |***********************************************|
-#Event BerAlli         "#1# is targeted by a demolisher's alliance."
-
-#include framework\quests.inc
 #include framework\ninjadvloot.inc
-#include framework\Raid.inc
-#include framework\common.inc
+#include framework\raid.inc
+#include framework\functions.inc
+#include framework\ini.inc
+#include framework\quests.inc
+#include framework\Manual.inc
+
 #include framework\ber.inc
 #include framework\brd.inc
 #include framework\bst.inc
@@ -105,14 +80,150 @@
 #include framework\shm.inc
 #include framework\war.inc
 #include framework\wiz.inc
-#include framework\Manual.inc
 
-/call CheckPlugin MQ2Nav
-/call CheckPlugin MQ2Autoloot
-/call CheckPlugin MQ2Worsthurt
-/call CheckPlugin MQ2Spawnsort
-/if (${Raid.Members}==0) /call CheckPlugin MQ2Posse
-/call Declares
+
+|****************************************| GENERAL EVENTS |****************************************|
+#Event Camping           "#*#seconds to prepare your camp."
+#Event Zoned             "LOADING, PLEASE WAIT#*#"
+#Event Zoned             "You have entered#*#"
+
+#Event TooSteep          "The ground here is too steep to camp"  
+
+#Event beginCast "#*#You begin casting#*#"
+#Event beginCast "#*#You begin singing#*#"
+#Event Fizzle "#*#Your spell fizzles!#*#"
+#Event Interrupted "#*#Your spell is interrupted#*#"
+#Event noTarget "#*#You must first select a target#*#"
+#Event noMana "#*#Insufficient Mana to cast#*#"
+#Event MezBroke          "#1# has been awakened by #2#."
+#Event Missing           "#*#You are missing some required components.#*#"
+
+#Event GoMOff            "The gift of magic fades."
+#Event GoMOff            "Your#*#gift of#*#mana fades."
+#Event GoMOn             "#*#granted#*#gift of#*#mana#*#"
+#Event GoMOn             "You feel strengthened by a gift of magic."
+#Event GoMOn             "You feel strengthened by magic."
+
+#Event Missing           "#*#You are missing some required components.#*#"
+#Event Missing           "#*#You are missing#*#"
+|****************************************| COMBAT |***********************************************|
+#Event MezBroke          "#1# has been awakened by #2#."
+
+#Event CantHit           "You can't hit them from here."
+#Event CantSee           "You cannot see your target."
+#Event TooClose          "Your target is too close to use a ranged weapon!"
+#Event TooFar            "Your target is too far away, get closer!"
+
+#Event ImDead            "#*#Returning to Bind Location#*#"
+#Event ImDead            "You died."
+#Event ImDead            "You have been slain by#*#"
+
+|****************************************| CASTING EVENTS |***********************************************|
+#Event CAST_BEGIN                  "You begin casting#*#"
+#Event CAST_BEGIN                  "You begin singing#*#"
+#Event CAST_BEGIN                  "Your #1# begins to glow."
+#Event CAST_COLLAPSE               "Your gate is too unstable, and collapses#*#"
+#Event CAST_CANNOTSEE              "You cannot see your target#*#"
+#Event CAST_COMPONENTS             "You are missing some required components#*#"
+#Event CAST_COMPONENTS             "Your ability to use this item has been disabled because you do not have at least a gold membership#*#"
+#Event CAST_DISTRACTED             "You need to play a#*#instrument for this song#*#"
+#Event CAST_DISTRACTED             "You are too distracted to cast a spell now#*#"
+#Event CAST_DISTRACTED             "You can't cast spells while invulnerable#*#"
+#Event CAST_DISTRACTED             "You *CANNOT* cast spells, you have been silenced#*#"
+#Event CAST_FDFAIL                 "#1# has fallen to the ground.#*#" 
+#Event CAST_FIZZLE                 "Your spell fizzles#*#"
+#Event CAST_FIZZLE                 "You miss a note, bringing your song to a close#*#"
+#Event CAST_IMMUNE                 "Your target has no mana to affect#*#"
+#Event CAST_IMMUNE                 "Your target is immune to changes in its attack speed#*#"
+#Event CAST_IMMUNE                 "Your target is immune to changes in its run speed#*#"
+#Event CAST_IMMUNE                 "Your target is immune to snare spells#*#"
+#Event CAST_IMMUNE                 "Your target is immune to the stun portion of this effect#*#"
+#Event CAST_IMMUNE                 "Your target cannot be mesmerized#*#"
+#Event CAST_IMMUNE                 "Your target looks unaffected#*#"
+#Event CAST_INTERRUPTED            "Your spell is interrupted#*#"
+#Event CAST_INTERRUPTED            "Your casting has been interrupted#*#"
+#Event CAST_NOMOUNT                "You can only summon a mount on dry land#*#"
+#Event CAST_NOMOUNT                "You need to be in a more open area to summon a mount#*#"
+#Event CAST_NOMOUNT                "You can not summon a mount here#*#"
+#Event CAST_NOMOUNT                "You must have both the Horse Models and your current Luclin Character Model enabled to summon a mount#*#"
+#Event CAST_NOTARGET               "You must first select a target for this spell#*#"
+#Event CAST_NOTARGET               "This spell only works on#*#"
+#Event CAST_NOTARGET               "You must first target a group member#*#"
+#Event CAST_NOTREADY               "Spell recast time not yet met#*#"
+#Event CAST_OUTOFMANA              "Insufficient Mana to cast this spell#*#"
+#Event CAST_OUTOFRANGE             "Your target is out of range, get closer#*#"
+#Event CAST_OUTDOORS               "This spell does not work here#*#"
+#Event CAST_OUTDOORS               "You can only cast this spell in the outdoors#*#"
+#Event CAST_RECOVER                "You haven't recovered yet#*#"
+#Event CAST_RECOVER                "Spell recovery time not yet met#*#"
+#Event CAST_RESISTED               "Your target resisted the #1# spell#*#"
+#Event CAST_RESISTEDYOU            "You resist the #1# spell#*#"
+#Event CAST_STANDING               "You must be standing to cast a spell#*#"
+#Event CAST_STUNNED                "You can't cast spells while stunned#*#"
+#Event CAST_STUNNED                "You are stunned#*#" 
+#Event CAST_SUCCESS                "You are already on a mount#*#"
+#Event CAST_TAKEHOLD               "Your spell did not take hold#*#"
+#Event CAST_TAKEHOLD               "Your spell would not have taken hold#*#"
+#Event CAST_TAKEHOLD               "Your spell is too powerfull for your intended target#*#"
+#Event CAST_TAKEHOLD               "This pet may not be made invisible#*#"
+
+|****************************************| ALLIANCES |********************************************|
+#Event BerAlli         "#1# is targeted by a demolisher's alliance."
+#Event BerAlliFulm		"The demolisher's alliance is fulfilled!"
+#Event BerAlliFulm		"#*#demolisher's alliance is fulfilled!"
+
+|****************************************| CONTROL EVENTS |***************************************|
+#Event AttackCalled      "<#1#>#*#TANKING-> #*# <- ID:#2#"
+|#Event PetToysPlease     "#*#PetToysPlease #1#"
+
+|****************************************| MANUAL EVENTS |***********************************************|
+#event oorange "Your target is too far away, get closer!"
+#event expp "You gain party experience!!" 
+#event exp "You gain experience!!"
+#event epic "You hear a dark voice in your mind."
+#event mortalcoil "You harvest energy from your slain opponent."
+#event selftarget "Try attacking someone other than yourself, it's more productive."
+#event cannotsee "You cannot see your target."
+#event skintick "Your skin loses feeling."
+#event skinreset "Your skin festers with a foul disease."
+#event swarmover "[MQ2] nomorepewpew"
+#event Loot "[MQ2] loot time"
+
+|****************************************| BINDS |***************************************|
+
+#bind AddMezImmune   /addimmune
+#bind AddToIgnore    /addignore
+#bind AddToPull      /addpull
+#bind BackOff        /backoff
+#bind Burn           /burn
+#bind Campfire       /campfire
+#bind CombatReset    /combatreset
+#bind MemMySpells    /memmyspells
+#bind SwitchVar      /switchvar
+#bind WriteMySpells  /writespells
+#bind ZoneInfo       /zoneinfo
+
+
+
+| -------------------------------------------------------------------------------------
+| Sub Main
+| -------------------------------------------------------------------------------------
+Sub Main
+    /doevents flush
+	/mqclear
+	/if (${Target.ID}) /squelch /target clear
+	/mqfont 8
+	
+|****************************************| Declares |*********************************************|
+	/declare Debug                  int         outer       0
+	/declare While                  int         outer       0
+	/declare MacroFlow              string      outer       Main
+    /declare CampXLoc               int         outer       ${Me.X}
+    /declare CampYLoc               int         outer       ${Me.Y}
+    /declare CampZLoc               int         outer       ${Me.Z}
+    /declare CampZone               int         outer       ${Zone.ID}
+	
+	/call Declares
 	/declare DebugFramework         int         outer       0
     /declare CampXLoc               int         outer       ${Me.X}
     /declare CampYLoc               int         outer       ${Me.Y}
@@ -162,20 +273,25 @@
 	} else /if (${Me.Level}>=5) {
 		/varset IniLevel 5
 	}
-/varset role ${Param0}
-${Param0} ${Param1}
+	/varset Role ${Param0}
+	
+	
+	${Param0} ${Param1}
+	
+	
+	|****************************************| PLUGIN SETUP |***************************************|
 
-	/call SetupAdvLootVars
-    /if (${HealsOn}) {
-        /call SortArray Heals 100|100 >
-        |/call FindSingleHeals
-        |/call FindGroupHeals
-		/call SortArray GroupHeal 100|100 >
-    }
-	/if (${DPSOn}) {
-        /call SortArray DPS 1|1 <
-    }
-    /call WinTitle
+	/call CheckPlugin SubMain MQ2Nav
+	/call CheckPlugin SubMain MQ2Autoloot
+	/call CheckPlugin SubMain MQ2Worsthurt
+	/call CheckPlugin SubMain MQ2Spawnsort
+	/call CheckPlugin SubMain MQ2Debuffs
+	/call CheckPlugin SubMain MQ2Dannet
+	/call CheckPlugin SubMain MQ2XAssist
+
+	/call loadini SubMain
+	/call SetupAdvLootVars SubMain
+    /call WinTitle SubMain
 | -------------------------------------------------------------------------------------
 | Main Loop
 | -------------------------------------------------------------------------------------
@@ -262,3 +378,252 @@ ${Param0} ${Param1}
 	/invoke ${Macro.Undeclared}
 	/setchattitle MQ2
 	/end
+
+| ----------------------------------------------------------------------------
+| SUB: 
+| USAGE:
+| ----------------------------------------------------------------------------
+    Sub (string SentFrom)
+		/if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+		
+		
+        /if (${Debug}) /echo \atDEBUG \awLeave XXX \ao- \atSent From: XXX \ao- \agLine#: ${Macro.CurLine}
+    /return
+
+| ----------------------------------------------------------------------------
+| SUB: 
+| USAGE:
+| ----------------------------------------------------------------------------
+    Sub (string SentFrom)
+        /if (${Debug}) /echo \atDEBUG \awEnter XXX \ao- \atSent From: XXX \ao- \agLine#: ${Macro.CurLine}
+		
+		
+        /if (${Debug}) /echo \atDEBUG \awLeave XXX \ao- \atSent From: XXX \ao- \agLine#: ${Macro.CurLine}
+    /return
+	
+| ----------------------------------------------------------------------------
+| SUB: Check Plugin
+| USAGE:
+| ----------------------------------------------------------------------------
+    Sub CheckPlugin(string SentFrom, string pluginname)
+		/if (${Debug}) /echo \atDEBUG \awEnter CheckPlugin \ao- \atSent From: ${SentFrom} \ao- \agLine#: ${Macro.CurLine}
+		/declare WaitTimer1 timer local 50
+        /if (!${Bool[${Plugin[${pluginname}]}]}) {
+            /squelch /plugin ${pluginname}
+            /echo ${pluginname} not detected! This macro requires it! Loading ...
+            /while (${WaitTimer1} && !${Bool[${Plugin[${pluginname}]}]}) {
+                /if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
+				/delay 5
+            }
+        }
+        /if (${Debug}) /echo \atDEBUG \awLeave CheckPlugin \ao- \atSent From: ${SentFrom} \ao- \agLine#: ${Macro.CurLine}
+    /return
+	
+	
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_BEGIN 
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_BEGIN(line,CBItem)
+		/if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_BEGIN \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_SUCCESS
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_BEGIN \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_CANNOTSEE
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_CANNOTSEE
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_CANNOTSEE
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return    
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_COLLAPSE
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_COLLAPSE
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_COLLAPSE
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_COMPONENTS
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_COMPONENTS
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_COMPONENTS
+        /doevents flush
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return    
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_DISTRACTED
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_DISTRACTED
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_DISTRACTED
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return    
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_FDFAIL
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_FDFAIL(line,name)
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /if (${name.Equal[${Me.Name}]} && ${Defined[castReturn]}) {
+            /if (${Me.Sitting}) /stand
+            /varset castReturn CAST_RESTART
+        }
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_FIZZLE
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_FIZZLE
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_FIZZLE
+        /if (${IAmABard}) /call DoBardStuff 
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_IMMUNE
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_IMMUNE(line,name)
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_IMMUNE
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_INTERRUPT
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_INTERRUPTED
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_INTERRUPTED
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_NOMOUNT
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_NOMOUNT
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_NOMOUNT
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_NOTARGET
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_NOTARGET
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_NOTARGET
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_NOTREADY
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_NOTREADY
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_NOTREADY
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_OUTDOORS
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_OUTDOORS
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_OUTOFMANA
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return    
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_OUTOFMANA
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_OUTOFMANA
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_OUTOFMANA
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_OUTOFRANGE
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_OUTOFRANGE
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_OUTOFRANGE
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_RECOVER
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_RECOVER
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_RECOVER
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_RESISTED
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_RESISTED(line,name)
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /if (${castReturn.NotEqual[CAST_IMMUNE]}) /varset castReturn CAST_RESISTED
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_RESISTEDYOU
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_RESISTEDYOU(line,name)
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_STANDING
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_STANDING
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /stand
+        /varset castReturn CAST_RESTART
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_STUNNED
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_STUNNED
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_STUNNED \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /if (${Me.Stunned}) {
+            /delay 3s !${Me.Stunned}
+        } else {
+            /delay 7
+        }
+        /varset castReturn CAST_STUNNED
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return
+| ---------------------------------------------------------------------------- 
+| SUB: Event_CAST_TAKEHOLD
+| ---------------------------------------------------------------------------- 
+    Sub Event_CAST_TAKEHOLD
+        /if (${Debug}) /echo \atDEBUG \awEnter Event_CAST_TAKEHOLD \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+        /varset castReturn CAST_TAKEHOLD
+        /if (${Debug}) /echo \atDEBUG \awLeave Event_CAST_CANNOTSEE \ao- \atSent From: EVENT \ao- \agLine#: ${Macro.CurLine}
+    /return 	
+	
+	
+	
+|-------------------------------------------------------------------------------------
+| SUB: Stuck
+| USAGE:
+| -------------------------------------------------------------------------------------
+    Sub Stuck(string SentFrom)
+		/if (${Debug}) /echo \atDEBUG \awEnter Stuck \ao- \atSent From: ${SentFrom} \ao- \agLine#: ${Macro.CurLine}
+		
+        /declare strafedir string local
+        | - We're stuck, back off a second, move left or right (randomly) for 1 second
+        /if (${IAmDead}) /return
+        /keypress back hold
+        /delay 10
+        /keypress back
+        /if (${Math.Rand[2]}) {
+            /varset strafedir STRAFE_LEFT
+        } else {
+            /varset strafedir STRAFE_RIGHT
+        }
+        /keypress ${strafedir} hold
+        /delay 10
+        /keypress ${strafedir}
+		/if (${Debug}) /echo \atDEBUG ${MacroFlow}: Leave \agLine#: ${Macro.CurLine}
+    /return
+	
+	

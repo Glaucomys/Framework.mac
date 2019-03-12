@@ -8,7 +8,6 @@
 
  Sub _BST
 	/if (${DebugFramework}) /echo in class sub
-    
 	/if (${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${PetAssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance}) {
 		/call CombatPet
 	}

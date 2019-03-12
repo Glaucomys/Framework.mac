@@ -1,0 +1,417 @@
+| - KA10211.mac v0.0.2 by Ctaylor22 09/05/2018.
+| Usage - /mac ka10211
+| /mac ka10211 FileName.ini
+| /mac ka10211 clean
+| /mac ka10211 FileName.ini clean  
+| This macro was written exclusively for subscribers of Redguides.com
+| -------------------------------------------------------------------------------------
+|
+| -------------------------------------------------------------------------------------
+| Sub Main
+| -------------------------------------------------------------------------------------
+Sub Main
+    /declare MacroName              string      outer       KissAssist
+    /declare IniFileName            string      outer         
+    /declare ConditionsFileName     string      outer       
+    /declare pi                     int         local       0
+    /declare NumParams              int         local       0
+    /declare Debug                  int         outer       0
+    /declare CIndex                 int         outer       0
+    /declare Wstr1                  string      outer
+    /declare CFlag                  string      outer       N
+    /declare SaveIniFileName        string      outer
+    /declare TimeStamp1             string      outer
+    | Check for command line variables
+    /if (${Macro.Params}) {
+        /varset NumParams ${Math.Calc[${Macro.Params}-1]}
+        /for pi 0 to ${NumParams}
+            /if (${Defined[Param${pi}]}) {
+                /echo P${pi}: ${Param${pi}}
+                /declare PParam${pi} string outer ${Param${pi}}
+            }
+        /next pi
+    }
+    /if (${Defined[Param0]}) {
+        /if (${Param0.NotEqual[clean]}) {
+            |/varset MacroName ${Param0}
+            /varset IniFileName ${Param0}
+            /echo Setting IniFileName to ${IniFileName}
+        } else /if (${Ini[${MacroName}_${EverQuest.Server}_${Me.CleanName}.ini,General,KissAssistVer].Length}) {
+            /varset IniFileName ${MacroName}_${EverQuest.Server}_${Me.CleanName}.ini
+            /echo Server Name ini file detected using ${IniFileName}
+        } else {
+            /varset IniFileName ${MacroName}_${Me.CleanName}.ini
+        }
+        /if (${Param0.Equal[clean]}) /varset CFlag Y
+    }
+    /if (${Defined[Param1]}) {
+        /if (${Param1.Equal[clean]}) /varset CFlag Y
+    }
+    /declare KissAssistVer string outer ${Ini[${IniFileName},General,KissAssistVer]}
+    | Start Build of Conditionals
+    /if (${Ini[${IniFileName},General,KissAssistVer].Length}) {
+        /call LoadIni General ConditionsOn          int         0
+        /if (${ConditionsOn}) {
+            /if (${ConditionsOn}==1) {
+                /varset ConditionsFileName ${IniFileName.Replace[.ini,]}_Conditions.ini
+                /varset CFlag N
+            } else {
+                /varset ConditionsFileName ${IniFileName}
+            }
+        } else {
+            /echo Conditions are turned off(${IniFileName}). Exiting Macro!
+            /end
+        }
+        /varset TimeStamp1 ${Time.Date.Right[4]}${Time.Date.Left[2]}${Time.Date.Mid[4,2]}_${Time.SecondsSinceMidnight}
+        /if (${CFlag.Equal[Y]}) {
+            /varset SaveIniFileName ${IniFileName}_Save${TimeStamp1}
+        }
+        /call LoadArrays
+        | Looks like we are good to go. Lets DOIT!
+        /ini "${IniFileName}" "KConditions" "ConOn" "0"
+        /ini "${IniFileName}" "KConditions" "CondSize" "0"
+        /varset CIndex 1
+        |/echo ${BuffsOn} - ${BuffsCOn} - ${BuffsSize}
+        | Buffs
+        /if (${BuffsOn} && ${BuffsCOn}) {
+            /for pi 1 to ${BuffsSize}
+                /if (${Buffs[${pi}].NotEqual[null]} && ${BuffsCond[${pi}].Find[$]}>0) {
+                    /if (${Buffs[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${Buffs[${pi}].Left[${Math.Calc[${Buffs[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${Buffs[${pi}]}
+                    }
+                    /varset Buffs[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "Buffs" "Buffs${pi}" "${Buffs[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},Buffs,BuffsCond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "Buffs" "BuffsCond${pi}" "${Ini[${ConditionsFileName},Buffs,BuffsCond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "Buffs" "BuffsCond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "Buffs" "BuffsCond${pi}" "${BuffsCond[${pi}]}"
+                    /ini "${ConditionsFileName}" "Buffs" "BuffsCond${pi}" NULL
+                }
+            /next pi
+        }
+        | DPS
+        /if (${DPSOn} && ${DPSCOn}) {
+            /for pi 1 to ${DPSSize}
+                /if (${DPS[${pi}].NotEqual[null]} && ${DPSCond[${pi}].Find[$]}>0) {
+                    /if (${DPS[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${DPS[${pi}].Left[${Math.Calc[${DPS[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${DPS[${pi}]}
+                    }
+                    /varset DPS[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "DPS" "DPS${pi}" "${DPS[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},DPS,DPSCond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "DPS" "DPSCond${pi}" "${Ini[${ConditionsFileName},DPS,DPSCond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "DPS" "DPSCond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "DPS" "DPSCond${pi}" "${DPSCond[${pi}]}"
+                    /ini "${ConditionsFileName}" "DPS" "DPSCond${pi}" NULL
+                }
+            /next pi
+        }
+        | Heals
+        /if (${HealsOn} && ${HealsCOn}) {
+            /for pi 1 to ${HealsSize}
+                /if (${Heals[${pi}].NotEqual[null]} && ${HealsCond[${pi}].Find[$]}>0) {
+                    /if (${Heals[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${Heals[${pi}].Left[${Math.Calc[${Heals[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${Heals[${pi}]}
+                    }
+                    /varset Heals[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "Heals" "Heals${pi}" "${Heals[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},Heals,HealsCond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "Heals" "HealsCond${pi}" "${Ini[${ConditionsFileName},Heals,HealsCond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "Heals" "HealsCond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "Heals" "HealsCond${pi}" "${HealsCond[${pi}]}"
+                    /ini "${ConditionsFileName}" "Heals" "HealsCond${pi}" NULL
+                }
+            /next pi
+        }
+        | AE
+        /if (${AEOn} && ${AECOn}) {
+            /for pi 1 to ${AESize}
+                /if (${AE[${pi}].NotEqual[null]} && ${AECond[${pi}].Find[$]}>0) {
+                    /if (${AE[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${AE[${pi}].Left[${Math.Calc[${AE[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${AE[${pi}]}
+                    }
+                    /varset AE[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "AE" "AE${pi}" "${AE[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},AE,AECond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "AE" "AECond${pi}" "${Ini[${ConditionsFileName},AE,AECond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "AE" "AECond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "AE" "AECond${pi}" "${AECond[${pi}]}"
+                    /ini "${ConditionsFileName}" "AE" "AECond${pi}" NULL
+                }
+            /next pi
+        }
+        | Aggro
+        /if (${AggroOn} && ${AggroCOn}) {
+            /for pi 1 to ${AggroSize}
+                /if (${Aggro[${pi}].NotEqual[null]} && ${AggroCond[${pi}].Find[$]}>0) {
+                    /if (${Aggro[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${Aggro[${pi}].Left[${Math.Calc[${Aggro[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${Aggro[${pi}]}
+                    }
+                    /varset Aggro[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "Aggro" "Aggro${pi}" "${Aggro[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},Aggro,AggroCond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "Aggro" "AggroCond${pi}" "${Ini[${ConditionsFileName},Aggro,AggroCond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "Aggro" "AggroCond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "Aggro" "AggroCond${pi}" "${AggroCond[${pi}]}"
+                    /ini "${ConditionsFileName}" "Aggro" "AggroCond${pi}" NULL
+                }
+            /next pi
+        }
+        | GOM
+        /if (${GoMCOn}) {
+            /for pi 1 to ${GoMSize}
+                /if (${GoMSpell[${pi}].NotEqual[null]} && ${GoMCond[${pi}].Find[$]}>0) {
+                    /if (${GoMSpell[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${GoMSpell[${pi}].Left[${Math.Calc[${GoMSpell[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${GoMSpell[${pi}]}
+                    }
+                    /varset GoMSpell[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "GoM" "GoMSpell${pi}" "${GoMSpell[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},GoM,GoMCond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "GoM" "GoMCond${pi}" "${Ini[${ConditionsFileName},GoM,GoMCond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "GoM" "GoMCond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "GoM" "GoMCond${pi}" "${GoMCond[${pi}]}"
+                    /ini "${ConditionsFileName}" "GoM" "GoMCond${pi}" NULL
+                }
+            /next pi
+        }
+        | Burn
+        /if (${BurnCOn}) {
+            /for pi 1 to ${BurnSize}
+                /if (${Burn[${pi}].NotEqual[null]} && ${BurnCond[${pi}].Find[$]}>0) {
+                    /if (${Burn[${pi}].Find[|cond]}) {
+                        /varset Wstr1 ${Burn[${pi}].Left[${Math.Calc[${Burn[${pi}].Find[|cond]}-1]}]} 
+                    } else {
+                        /varset Wstr1 ${Burn[${pi}]}
+                    }
+                    /varset Burn[${pi}] ${Wstr1}|cond${CIndex}
+                    /ini "${IniFileName}" "Burn" "Burn${pi}" "${Burn[${pi}]}"
+                    /ini "${IniFileName}" "KConditions" "Cond${CIndex}" "${Ini[${ConditionsFileName},Burn,BurnCond${pi},NULL,noparse]}"
+                    /if (${CFlag.Equal[Y]}) {
+                        /ini "${SaveIniFileName}" "Burn" "BurnCond${pi}" "${Ini[${ConditionsFileName},Burn,BurnCond${pi},NULL,noparse]}"
+                        /ini "${ConditionsFileName}" "Burn" "BurnCond${pi}" NULL
+                    }
+                    /varcalc CIndex ${CIndex}+1
+                } else /if (${CFlag.Equal[Y]}) {
+                    /ini "${SaveIniFileName}" "Burn" "BurnCond${pi}" "${BurnCond[${pi}]}"
+                    /ini "${ConditionsFileName}" "Burn" "BurnCond${pi}" NULL
+                }
+            /next pi
+        }
+    
+        | Finish setting KConditions header information
+        /if (${CIndex}>1) {
+            /ini "${IniFileName}" "KConditions" "ConOn" "1"
+            /varcalc CIndex ${CIndex}-1
+            /ini "${IniFileName}" "KConditions" "CondSize" "${CIndex}"
+        }
+        /if (${CFlag.Equal[Y]}) {
+            /ini "${ConditionsFileName}" "General" "ConditionsOn" NULL
+            /ini "${ConditionsFileName}" "Buffs" "BuffsCOn" NULL
+            /ini "${ConditionsFileName}" "DPS" "DPSCOn" NULL
+            /ini "${ConditionsFileName}" "Heals" "HealsCOn" NULL
+            /ini "${ConditionsFileName}" "AE" "AECOn" NULL
+            /ini "${ConditionsFileName}" "Aggro" "AggroCOn" NULL
+            /ini "${ConditionsFileName}" "GoM" "GoMCOn" NULL
+            /ini "${ConditionsFileName}" "Burn" "BurnCOn" NULL
+            
+            /ini "${SaveIniFileName}" "General" "ConditionsOn" "${ConditionsOn}"
+            /ini "${SaveIniFileName}" "Buffs" "BuffsCOn" "${BuffsCOn}"
+            /ini "${SaveIniFileName}" "DPS" "DPSCOn" "${DPSCOn}" 
+            /ini "${SaveIniFileName}" "Heals" "HealsCOn" "${HealsCOn}"
+            /ini "${SaveIniFileName}" "AE" "AECOn" "${AECOn}"
+            /ini "${SaveIniFileName}" "Aggro" "AggroCOn" "${AggroCOn}"
+            /ini "${SaveIniFileName}" "GoM" "GoMCOn" "${GoMCOn}"
+            /ini "${SaveIniFileName}" "Burn" "BurnCOn" "${BurnCOn}"
+        }
+    } else {
+        |Something went wrong.
+        /echo Invalid INI File: ${IniFileName}. Ending Macro.
+        /end
+    }
+    /echo Finished!
+/return
+
+| ----------------------------------------------------------------------------
+| SUB: Load Ini
+| ----------------------------------------------------------------------------
+    Sub LoadArrays
+        | ************************* Buffs ****************************************|
+        /call LoadIni Buffs BuffsOn                 int         0
+        /call LoadIni Buffs BuffsCOn                int         0          NULL         FALSE          "${ConditionsFileName}"
+        /call LoadIni Buffs BuffsSize               int         20
+        /declare Buffs[${BuffsSize}]                string      outer
+        /declare BuffsCond[${BuffsSize}]            string      outer      TRUE
+        /call LoadIni Buffs Buffs                   string      NULL       Buffs        BuffsCond      "${IniFileName}" "${ConditionsFileName}"
+        | ************************* GoM ****************************************|
+        /call LoadIni GoM GoMCOn                    int         0          NULL         FALSE          "${ConditionsFileName}"
+        /call LoadIni GoM GoMSize                   int         3
+        /declare GoMSpell[${GoMSize}]               string      outer
+        /declare GoMCond[${GoMSize}]                string      outer      TRUE
+        |string       sectionName, varName,         varType,    varValue,  varArray,    varArray2,     FileName,        FileName2
+        /call LoadIni GoM GoMSpell                  string      NULL       GoMSpell     GoMCond        "${IniFileName}" "${ConditionsFileName}"  
+    | *************************  AE ******************************************|
+        /call LoadIni AE AEOn                       int         0
+        /call LoadIni AE AECOn                      int         0          NULL         FALSE          "${ConditionsFileName}"
+        /call LoadIni AE AESize                     int         10
+        /declare AE[${AESize}]                      string      outer
+        /declare AECond[${AESize}]                  string      outer      TRUE
+        /call LoadIni AE AE                         string      NULL       AE           AECond         "${IniFileName}" "${ConditionsFileName}"
+    | ************************* DPS ******************************************|
+        /call LoadIni DPS DPSOn                     int         0
+        /call LoadIni DPS DPSCOn                    int         0           NULL        FALSE           "${ConditionsFileName}"
+        /call LoadIni DPS DPSSize                   int         20
+        /declare DPS[${DPSSize}]                    string      outer
+        /declare DPSCond[${DPSSize}]                string      outer       TRUE
+        |string       sectionName, varName,         varType,    varValue,   varArray,   varArray2,     FileName,        FileName2
+        /call LoadIni DPS DPS                       string      NULL        DPS         DPSCond        "${IniFileName}" "${ConditionsFileName}"
+    | ************************* Aggro ******************************************|
+        /call LoadIni Aggro AggroOn                 int         0
+        /call LoadIni Aggro AggroSize               int         5
+        /declare Aggro[${AggroSize}]                string      outer
+        /declare AggroCond[${AggroSize}]            string      outer       TRUE
+        /call LoadIni Aggro Aggro                   string      NULL        Aggro       AggroCond      "${IniFileName}" "${ConditionsFileName}"
+    | ************************* Heals ***************************************|
+        /call LoadIni Heals HealsOn                 int         0
+        /call LoadIni Heals HealsCOn                int         0           NULL          FALSE           "${ConditionsFileName}"
+        /call LoadIni Heals HealsSize               int         5
+        /declare Heals[${HealsSize}]                string      outer
+        /declare HealsCond[${HealsSize}]            string      outer       TRUE
+        /call LoadIni Heals Heals                   string      NULL        Heals         HealsCond      "${IniFileName}" ${ConditionsFileName} 
+        /call LoadIni Heals AutoRezOn               int         0
+        /call LoadIni Heals AutoRezCOn              int         0           NULL          FALSE           "${ConditionsFileName}"
+        /declare AutoRez[3]                         string      outer
+        /declare AutoRezCond[3]                     string      outer       TRUE
+        /call LoadIni Heals AutoRez                 string      NULL        AutoRez       AutoRezCond    "${IniFileName}" ${ConditionsFileName} 
+    | ************************* Burn ****************************************|
+        /call LoadIni Burn  BurnCOn                 int         0           Null          FALSE            "${ConditionsFileName}"
+        /call LoadIni Burn  BurnSize                int         15
+        /declare Burn[${BurnSize}]                  string      outer
+        /declare BurnCond[${BurnSize}]              string      outer   TRUE
+        /call LoadIni Burn  Burn                    string      NULL        Burn          BurnCond        "${IniFileName}" "${ConditionsFileName}"
+    /return
+| ----------------------------------------------------------------------------
+| SUB: Load Ini
+| ----------------------------------------------------------------------------
+    Sub LoadIni(string sectionName, string varName, string varType, string varValue, string varArray, string varArray2, string FileName, string FileName2)
+        /if (${Debug}) {
+            /delay 2
+            /echo \atDEBUG Sub Loadini S:${sectionName} V1:${varName} V2:${varType} V3:${varValue} V4:${varArray} V5:${varArray2} V6:${FileName} V7:${FileName2} \agLine#: ${Macro.CurLine}
+        }
+        /declare rkTemp                 string      local 
+        /declare UtilInt                int         local        0 
+        /declare FileName1              string      local        ${FileName}
+        | Assign ini name to default ini if not defined
+        /if (${FileName1.Length}==0  || ${FileName1.Equal[NULL]}) {
+            /varset FileName1 ${IniFileName}
+        }
+        | Check if ini value is asking for an array ie buff1 to buff20
+        
+        /if (${Bool[${varArray}]}) {
+            /if (${${varArray}.Size}>0) {
+                /declare i int local
+                /for i 1 to ${${varArray}.Size}
+                    |/if (!${Ini[${FileName1},${sectionName},${varArray}${i}].Length}) /ini "${FileName1}" "${sectionName}" "${varArray}${i}" "${varValue}"
+                    /if (${Ini[${FileName1},${sectionName},${varArray}${i}].Length}) /varset ${varArray}[${i}] ${Ini[${FileName1},${sectionName},${varArray}${i}]}
+                    /if (${varType.Equal[string]}) {
+                        /if (${${varArray}[${i}].Find[//]}) /varset ${varArray}[${i}] ${${varArray}[${i}].Left[${Math.Calc[${${varArray}[${i}].Find[//]}-1]}]}
+                    }
+                    /if (${Debug}) /echo \atDEBUG ${ConditionsOn} ${Int[${varArray2.Length}]} ${varArray2.Length} ${Bool[${varArray2.NotEqual[null]}]} ${varArray2}
+                    /if (${Defined[ConditionsOn]}) {
+                        /if (${ConditionsOn} && ${Int[${varArray2.Length}]}>0 && ${varArray2.NotEqual[null]}) {
+                            | Check to see if the conditions file is a different file and update spell info.
+                            /if (${FileName2.NotEqual[${FileName1}]}) /ini "${FileName2}" "${sectionName}" "${varName}${i}" "${${varArray}[${i}]}"
+                            /if (!${Ini[${FileName2},${sectionName},${varArray2}${i}].Length}) {
+                                /if (${${varArray}[${i}].NotEqual[null]}) {
+                                    /ini "${FileName2}" "${sectionName}" "${varArray2}${i}" "TRUE"
+                                } else {
+                                    /ini "${FileName2}" "${sectionName}" "${varArray2}${i}" "FALSE"
+                                }
+                            }
+                            /varset ${varArray2}[${i}]  ${Ini[${FileName2},${sectionName},${varArray2}${i},TRUE,noparse]}
+                        } else /if (${Int[${varArray2.Length}]}>0 && ${varArray2.NotEqual[null]}) {
+                            /varset ${varArray2}[${i}] TRUE
+                        } 
+                    } else {
+                        /varset ${varArray2}[${i}] TRUE
+                    }
+                    /if (${Debug}) /echo  \atDEBUG Loadini ${i} - ${varArray}[${i}] - ${${varArray}[${i}]} - ${Macro.Return} - ${Me.AltAbility[${Macro.Return}]} \agLine#: ${Macro.CurLine}
+                /next i
+                /return
+            }
+        } else {
+            /if (!${Defined[${varName}]} && ${Select[${varType},string,float,int]}>0) /declare ${varName} ${varType} outer 0
+            |Using the varArray2 to tell if trying to find a conditional entry or not. False = conditional null = non-conditional
+            /if (${varArray2.Length}==0 || ${varArray2.Equal[false]} || ${varArray2.Equal[NULL]}) {
+                /if (!${Ini[${FileName1},${sectionName},${varName}].Length}) {
+                    /if (${varValue.Length}) {
+                        |/ini "${FileName1}" "${sectionName}" "${varName}" "${varValue}"
+                        /varset ${varName} ${varValue}
+                        /if (${Debug}) /echo \atDEBUG Sub Loadini /varset ${varName} ${varValue} \agLine#: ${Macro.CurLine}
+                    }
+                } else {
+                    /varset ${varName} ${Ini[${FileName1},${sectionName},${varName}]}
+                    /if (${varType.Equal[string]}) {
+                        /if (${${varName}.Find[//]}) /varset ${varName} ${${varName}.Left[${Math.Calc[${${varName}.Find[//]}-1]}]}
+                    }
+                }
+            } else /if (${Defined[ConditionsOn]}) {
+                /if (${ConditionsOn}) {
+                    /if (!${Ini[${FileName1},${sectionName},${varName}].Length}) {
+                        /if (${varValue.Length}) {
+                            |/ini "${FileName1}" "${sectionName}" "${varName}" "${varValue}"
+                            /varset ${varName} ${varValue}
+                            /if (${Debug}) /echo \atDEBUG Sub Loadini /varset ${varName} ${varValue} \agLine#: ${Macro.CurLine}
+                        }
+                    } else {
+                        /varset ${varName} ${Ini[${FileName1},${sectionName},${varName}]}
+                        /if (${varType.Equal[string]}) {
+                            /if (${${varName}.Find[//]}) /varset ${varName} ${${varName}.Left[${Math.Calc[${${varName}.Find[//]}-1]}]}
+                        }
+                    }
+                } else {
+                    /varset ${varName} ${varValue}
+                }
+            } else {
+                /varset ${varName} ${varValue}
+            }
+            /if (${Debug}) /echo \atDEBUG Sub LoadIni: ${varName} - ${${varName}} \agLine#: ${Macro.CurLine}
+            /varset rkTemp 
+        }
+        /if (${Debug}) /echo \atDEBUG Sub LoadIni: Leave \agLine#: ${Macro.CurLine}
+    /return

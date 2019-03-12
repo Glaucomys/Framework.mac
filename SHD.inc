@@ -7,17 +7,6 @@ Sub _shd
 	/if (${Select[${Role},tank,pettank,pullertank,pullerpettank,hunter,hunterpettank]} && ${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20) {
 	    /varset ReturnToCamp 1
 		/call DoWeMove 1 CheckForCombat
-	    |/if (${Macro.IsTLO[Navigation]}) {
-		|	/nav locxyz ${CampYLoc} ${CampXLoc} ${CampZLoc}
-		|    /while (1) {
-		|		/if (!${Navigation.Active}) /break
-		|		/delay 1
-		|    }
-	    |} else {
-		|    /varset ReturnToCamp 1
-		|	/call DoWeMove 1 CheckForCombat
-	    |}
-	  
 	}
 	
 	/if (${Me.CombatState.Equal[COMBAT]} && ${Select[${Me.Class.ShortName},WAR,PAL,SHD]} && ${CombatStart} && !${Me.ActiveDisc.ID} && (${Target.Named} || ${Me.XTarget}>1) && ${Target.Distance}<75) {
@@ -29,7 +18,7 @@ Sub _shd
 		/call NewCast ${MyTargetID} "DPS"
 	}
 	
-	/if (${Me.CombatState.Equal[COMBAT]} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${PetAssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance}) {
+	/if (${CombatStart} && ${PetOn} && ${PetCombatOn} && !${Me.Pet.Combat} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${PetAssistAt} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance}) {
 		/call CombatPet
 	}
 	
