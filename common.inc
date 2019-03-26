@@ -355,7 +355,7 @@
 				/assist ${MainAssist}
 			} else /if (${Me.XTarget[1].TargetType.NotEqual[Raid Assist 1 Target]}) {
 				/xtarget set 1 raidassist1target
-			} 
+			}
 			/delay 1s ${Me.AssistComplete}
 			/varset TempTargetID ${Target.ID}
 			|else /if (${useSmartAssist2} && ${Me.XTarget[1].TargetType.NotEqual[Raid Assist 2 Target]} && ${Raid.Members}) {
@@ -371,11 +371,14 @@
 				/varset MyTargetID 0
 				/varset MyTargetName
 				/xtarget set 1 autohater
-				/echo Invalid Target: ${Me.XTarget[1].CleanName} ${Me.XTarget[1].ID}
+				|/echo Invalid Target: ${Me.XTarget[1].CleanName} ${Me.XTarget[1].ID}
+				/echo Invalid Target: ${MyTargetName} ${MyTargetID}
 				/return
 			} else {
-				/varset MyTargetID ${Me.XTarget[1].ID}
-				/varset MyTargetName ${Me.XTarget[1].CleanName}
+				|/varset MyTargetID ${Me.XTarget[1].ID}
+				|/varset MyTargetName ${Me.XTarget[1].CleanName}
+				/varset MyTargetID ${TempTargetID}
+				/varset MyTargetName ${Spawn[id ${TempTargetID}].CleanName}
 				/echo Valid Target: ${MyTargetName} ${MyTargetID}
 			}
 		}

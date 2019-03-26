@@ -3,10 +3,6 @@
 |HOLIES
 |holyshit26=/if (${Raid.Members} && ${Me.CombatState.Equal[COMBAT]} && !${Bool[${Me.Buff[Divine Indemnification Rk. II].ID}]}) /bc I need DI
 |holyshit26=/if (${Raid.Members} && ${Me.CombatState.Equal[COMBAT]} ${Target.PctHPs}<20) /bc I need a heal health <10
-
-|CHANGES TO MAKE TO MACROS
-|ADD _ #include Raid.inc to macro start
-|ADD _ /call GeneralDeclares3 to submain
 |If using kiss add #bind Switchnowraid      /switchnowraid
 | ----------------------------------------------------------------------------
 | SUB: Bind Switchnowraid
@@ -83,29 +79,35 @@
 
 
 
-Sub GeneralDeclares3
-   /echo Setting up all raid Variables.
-   /declare Tank1	 string outer Gegolian
-   /declare Tank2	 string outer Oamuk
-   /declare Tank3	 string outer Oamuk
-   /declare Tank4	 string outer Oamuk
-   /declare Tank5	 string outer Oamuk
+	Sub GeneralDeclares3
+	   /echo Setting up all raid Variables.
+	   /declare Tank1	 string outer Gegolian
+	   /declare Tank2	 string outer Oamuk
+	   /declare Tank3	 string outer Oamuk
+	   /declare Tank4	 string outer Oamuk
+	   /declare Tank5	 string outer Oamuk
 
-   /declare Innymovevariable	 string outer Empty
-   /declare ClericSPLASHROTATION int outer 0
-   /declare Cleric1 string outer Amriel
-   /declare Cleric2 string outer Suede
-   /declare Cleric3 string outer Dennwiny
-   /declare raidbuffup string outer NULL
-   /declare movetotarget int outer 0
-   /declare movecall int outer 0
-   /declare AEOK int outer 0
-   /declare CampXLoc2               int         outer       ${Me.X}
-   /declare CampYLoc2              int         outer       ${Me.Y}
-   /declare InnyXLoc               int         outer       ${Me.X}
-   /declare InnyYLoc               int         outer       ${Me.Y}
+	   /declare Innymovevariable	 string outer Empty
+	   /declare ClericSPLASHROTATION int outer 0
+	   /declare Cleric1 string outer Amriel
+	   /declare Cleric2 string outer Suede
+	   /declare Cleric3 string outer Dennwiny
+	   /declare raidbuffup string outer NULL
+	   /declare movetotarget int outer 0
+	   /declare movecall int outer 0
+	   /declare AEOK int outer 0
+	   /declare CampXLoc2               int         outer       ${Me.X}
+	   /declare CampYLoc2              int         outer       ${Me.Y}
+	   /declare InnyXLoc               int         outer       ${Me.X}
+	   /declare InnyYLoc               int         outer       ${Me.Y}
+	   
+	   /declare SplitAssist1_1 string outer NULL
+	   /declare SplitAssist1_2 string outer NULL
+	   /declare SplitAssist2_1 string outer NULL
+	   /declare SplitAssist2_2 string outer NULL
+	   
 
-/return
+	/return
 
 
 |---------------------------------------------------------------------
@@ -587,8 +589,8 @@ Sub Event_BurnVIM
 |--------------------------------------------------------------------------------
 |Misc
 
-Sub WaitCast(string sentFrom)
-:rewaitcast
+|Sub WaitCast(string sentFrom)
+|:rewaitcast
 |	/if (${sentFrom.Equal[SingleHeal]} && ${CastingInterruptOn}) {
 |		/call KACheckHP
 |	} else /if (${Select[${sentFrom},dps,gom,burn]} > 0 && ${CastingInterruptOn}) {
@@ -596,9 +598,9 @@ Sub WaitCast(string sentFrom)
 |	} else /if (${Select[${sentFrom},buffs,buffs-nomem]} > 0 && ${CastingInterruptOn}) {
 |		/call KACheckBUFFS
 |	}
-	/if (${Cast.Status.NotEqual[I]} || ${Me.Casting.ID}) {
-		/delay 1
-		/goto :rewaitcast
-	}
-	/echo ${Cast.Result}
-/return
+|	/if (${Cast.Status.NotEqual[I]} || ${Me.Casting.ID}) {
+|		/delay 1
+|		/goto :rewaitcast
+|	}
+|	/echo ${Cast.Result}
+|/return
