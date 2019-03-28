@@ -12,7 +12,11 @@ Sub _shd
 	/if (${Me.CombatState.Equal[COMBAT]} && ${Select[${Me.Class.ShortName},WAR,PAL,SHD]} && ${CombatStart} && !${Me.ActiveDisc.ID} && (${Target.Named} || ${Me.XTarget}>1) && ${Target.Distance}<75) {
 		/if (${DebugFramework}) /echo defensive
 		/call SKDefense
-	} else /if (${SpawnSort[1,asc,PctAggro,xtarhater].PctAggro} < 100 && ${CombatStart} && ${Select[${Role},pullertank,tank]}) {
+	} 
+	
+	/if (${SpawnSort[1,asc,PctAggro,xtarhater].PctAggro} < 100 && ${CombatStart} && ${Select[${Role},pullertank,tank]}) {
+		
+		/echo controlling aggro on ${SpawnSort[1,asc,PctAggro,xtarhater].CleanName} 
 		/call NewCast ${SpawnSort[1,asc,PctAggro,xtarhater].ID} "Aggro"
 	} else /if (${DPSOn} && ${CombatStart} && (${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} || ${Spawn[${MyTargetID}].ID} || !${Me.Feigning})) {
 		/call NewCast ${MyTargetID} "DPS"
@@ -25,17 +29,12 @@ Sub _shd
 /return 
 
 
- 	|/if (${combat_function[]} && ${CombatStart}) {
-	|		/echo combat_adj
-	|		/call combat_adj
-	|}
-	
 Sub SKDefense
 	/if (${DebugFramework}) /echo in skdefense
-	/if (!${Me.ActiveDisc.ID}) {
+	/if (${FindItem[=Diplomatic Papers].ID} && ${Me.ItemReady[Diplomatic Papers]} && (${Me.XTarget} > 3 || ${Target.Named})) /call CastWhat "Innoruuk's Dark Blessing"
+	/if (!${Me.ActiveDisc.ID} && !${Me.Buff[Armor of Experience].ID} && !${Me.Buff[Glyph of Dragon Scales].ID} && !${Me.Song[Lich Sting Recourse].ID}) {
 	
 		/if (${Me.CombatAbilityReady[Deflection Discipline]} && (${Me.XTarget} > 3 || ${Target.Named}) && !${Me.CombatAbilityReady[${Spell[Unholy Guardian Discipline].RankName}]} && !${Me.CombatAbilityReady[${Spell[Doomscale Mantle].RankName}]} && !${Me.CombatAbilityReady[${Spell[Vizat's Carapace].RankName}]} && !${Me.CombatAbilityReady[${Spell[Unholy Aura Discipline].RankName}]}) {
-			|/disc ${Spell[Deflection Discipline].RankName}
 			/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Deflection Discipline].RankName}]}].ID}
 		}
 		
@@ -47,10 +46,8 @@ Sub SKDefense
 		/if (${Me.PctEndurance}>5) {
 			/if (${Me.CombatAbilityReady[${Spell[Unholy Guardian Discipline].RankName}]}) {
 				/if (${Me.CombatAbilityReady[${Spell[Cursed Guardian Discipline].RankName}]}) {
-					|/disc ${Spell[${Spell[Cursed Guardian Discipline].RankName}].ID}
 					/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Cursed Guardian Discipline].RankName}]}].ID}
 				} else {
-					|/disc ${Spell[${Spell[Unholy Guardian Discipline].RankName}].ID}
 					/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Unholy Guardian Discipline].RankName}]}].ID}
 				}
 			
@@ -59,8 +56,6 @@ Sub SKDefense
 			
 			/if (${DebugFramework}) /echo past gaurdian
 			/if (${Me.CombatAbilityReady[${Spell[Unholy Aura Discipline].RankName}]}) {
-					
-				|/disc ${Spell[${Spell[Unholy Aura Discipline].RankName}].ID}
 				/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Unholy Aura Discipline].RankName}]}].ID}
 				
 				/return				
@@ -71,13 +66,11 @@ Sub SKDefense
 			/if (!${Me.CombatAbilityReady[${Spell[Unholy Guardian Discipline].RankName}]} && ${Me.CombatAbilityReady[${Spell[Ichor Guard].RankName}]}) {
 			
 				/if (${Me.CombatAbilityReady[${Spell[Krellnakor Mantle].RankName}]}) {
-					|/disc ${Spell[Krellnakor Mantle].RankName}
 					/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Krellnakor Mantle].RankName}]}].ID}
 					/goto :SKMantleEnd
 				}
 				
 				/if (${Me.CombatAbilityReady[${Spell[Doomscale Mantle].RankName}]}) {
-					|/disc ${Spell[Doomscale Mantle].RankName}
 					/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Doomscale Mantle].RankName}]}].ID}
 					/goto :SKMantleEnd
 				}
@@ -121,12 +114,10 @@ Sub SKDefense
 			
 			/if (!${Me.CombatAbilityReady[${Spell[Unholy Guardian Discipline].RankName}]} && !${Me.CombatAbilityReady[${Spell[Ichor Guard].RankName}]} && ${Me.CombatAbilityReady[${Spell[Grelleth's Carapace].RankName}]}) {	
 				/if (${Me.CombatAbilityReady[${Spell[Tylix's Carapace].RankName}]}) {
-					|/disc ${Spell[Tylix's Carapace].RankName}
 					/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Tylix's Carapace].RankName}]}].ID}
 					/goto :SKArmorEnd
 				}
 				/if (${Me.CombatAbilityReady[${Spell[Vizat's Carapace].RankName}]}) {
-					|/disc ${Spell[Vizat's Carapace].RankName}
 					/disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Vizat's Carapace].RankName}]}].ID}
 					/goto :SKArmorEnd
 				}
@@ -154,16 +145,42 @@ Sub SKDefense
 		/if (!${Me.CombatAbilityReady[${Spell[Gorgon Mantle].RankName}]}) {
 			/if (${Me.AltAbilityReady[Fundament: Third Spire of the Reaver]}) {
 				/call CastWhat "Fundament: Third Spire of the Reaver"
-				/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Third Spire" r "Active"
+				|/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Third Spire" r "Active"
 				/return			
 				}
 			/if (!${Me.AltAbilityReady[Fundament: Third Spire of the Reaver]} && ${Me.AltAbilityReady[Armor of Experience]}) {
 				/call CastWhat "Armor of Experience"
-				/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Armor of Experience"  r "Active"
+				|/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Armor of Experience"  r "Active"
 				/return			
-			}	
+			}
+			/if (!${Me.AltAbilityReady[Fundament: Third Spire of the Reaver]} && !${Me.AltAbilityReady[Armor of Experience]} && ${Me.AltAbilityReady[Visage of Death]}) {
+				/call CastWhat "Visage of Death"
+				/if (${FindItem[=Innoruuk's Dark Blessing].ID}) /call CastWhat "Innoruuk's Dark Blessing"
+				|/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Armor of Experience"  r "Active"
+				/return			
+			}
+			/if (${Me.CombatAbilityReady[${Spell[Leechcurse Discipline].RankName}]} && !${Me.AltAbilityReady[Fundament: Third Spire of the Reaver]} && !${Me.AltAbilityReady[Armor of Experience]} && ${Me.AltAbilityReady[Visage of Death]}) {
+				/disc ${Spell[Leechcurse Discipline].RankName}
+				|/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Armor of Experience"  r "Active"
+				/return			
+			}
+			/if (!${Me.AltAbilityReady[Fundament: Third Spire of the Reaver]} && !${Me.AltAbilityReady[Armor of Experience]} && !${Me.AltAbilityReady[Visage of Death]} && ${Me.AltAbilityReady[Glyph of Dragon Scales]}) {
+				/call CastWhat "Glyph of Dragon Scales"
+				/if (${Me.AAPoints} > 40) /alt buy ${AltAbility[Glyph of Dragon Scales].Index}
+				|/if (${Macro.Return.Equal[CAST_SUCCESS]}) /if (${ReportDefense}) /call AnnounceMessage 2 y "Armor of Experience"  r "Active"
+				/return			
+			}
 		}
 		
 	}
 /return
 
+|Impenitent Influence is the first disc to use for large pulls, Krellnakor Mantle is the second, and Cursed Guardian is the 3rd
+|Glyph of the Dragon Scales lasts 5 minutes and is a bit redundant with some discs
+|Aligning Visage of Death (increased melee dps) with Epic Click is also a really good tool
+
+ 	|/if (${combat_function[]} && ${CombatStart}) {
+	|		/echo combat_adj
+	|		/call combat_adj
+	|}
+	

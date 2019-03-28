@@ -1344,25 +1344,27 @@ Sub Main
 				/if (${MercOn}) /call MercsDoWhat
 				/call CastMana MainLoop
 				
-				
-				/if (${PetOn}) {
-					/call DoPetStuff
-					/call CheckPetBuffs
-				}
-				/if (${Me.CombatState.NotEqual[COMBAT]}) {
-					/if (${CampfireOn}) /call Campfire
-					/call WriteBuffs
-					/call WriteBuffsMerc
-					/call WriteBuffsPet
-					
-				}
 				/if (${CuresOn}) /call CheckCures
-				/if (${BuffsOn} && (!${IAmDead} || !${Me.Invis} || !${ReadBuffsTimer})) /call CheckBuffs 0
-				
-				
-				/if (${Me.CombatState.NotEqual[COMBAT]}) {
-					/if (${MedOn}) /call DoWeMed
-					/if (${GroupWatchOn}) /call GroupWatch
+				/if (${SpawnCount[npc radius ${CampRadius} zradius 15 targetable playerstate 4]} < 2) {
+					/if (${PetOn}) {
+						/call DoPetStuff
+						/call CheckPetBuffs
+					}
+					/if (${Me.CombatState.NotEqual[COMBAT]}) {
+						/if (${CampfireOn}) /call Campfire
+						/call WriteBuffs
+						/call WriteBuffsMerc
+						/call WriteBuffsPet
+						
+					}
+					
+					/if (${BuffsOn} && (!${IAmDead} || !${Me.Invis} || !${ReadBuffsTimer})) /call CheckBuffs 0
+					
+					
+					/if (${Me.CombatState.NotEqual[COMBAT]}) {
+						/if (${MedOn}) /call DoWeMed
+						/if (${GroupWatchOn}) /call GroupWatch
+					}
 				}
 				/if (${IAmDead}) /call DeathSub
 				
@@ -2190,7 +2192,7 @@ Sub Main
             /if (${Debug}) /echo I am a bard CastBard ${BardSpell}
             /useitem "${BardSpell}"
             /delay 5
-            /while (${Me.Casting.ID}==${FindItem[=${BardSpell}].Spell.ID}) {
+            /while (${Me.Casting.ID} && ${Me.Casting.ID}==${FindItem[=${BardSpell}].Spell.ID}) {
                 /delay 5
             }
             /call DoCastingEvents 
