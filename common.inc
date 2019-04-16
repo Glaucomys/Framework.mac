@@ -19,6 +19,19 @@
 	/declare Mod_GroupHealthAvg     int      	outer       0
 	/declare Mod_HurtMember     	int 		outer 		0
 	/declare NULLPoint     	int 		outer 		100
+	
+	/declare movetotarget int outer 0
+	/declare movecall int outer 0
+	/declare AEOK int outer 0
+	/declare SustainedOn int outer 0
+	
+	/declare ReportDefense bool outer FALSE
+	
+	|Raid Stuff
+	/declare SplitAssist1_1 string outer NULL
+    /declare SplitAssist1_2 string outer NULL
+    /declare SplitAssist2_1 string outer NULL
+    /declare SplitAssist2_2 string outer NULL
 	/declare Tank1	 string outer Gegolian
 	/declare Tank2	 string outer Oamuk
 	/declare Tank3	 string outer Oamuk
@@ -30,14 +43,11 @@
 	/declare Cleric2 string outer Suede
 	/declare Cleric3 string outer Dennwiny
 	/declare raidbuffup string outer NULL
-	/declare movetotarget int outer 0
-	/declare movecall int outer 0
-	/declare AEOK int outer 0
+	
 	/declare CampXLoc2               int        outer       ${Me.X}
 	/declare CampYLoc2              int         outer       ${Me.Y}
 	/declare InnyXLoc               int         outer       ${Me.X}
 	/declare InnyYLoc               int         outer       ${Me.Y}
-	/declare ReportDefense bool outer FALSE
 
 	/if (${Select[${Me.Class.ShortName},BER]}) {
 		/declare epicaxe					string outer NULL
@@ -58,7 +68,8 @@
 	
 	Sub DeathSub
 		/echo You are sleeping with the fishes
-		/xtarget set 1 autohater
+		/if (${IAmDead} && ${CampZone}==${Zone.ID} && (${Me.Buff[Resurrection Sickness].ID} || ${SpawnCount[pccorpse ${Me}]}==0 || ${Me.Buff[Resurrection Sickness].ID} || ${SpawnCount[npc radius ${MeleeDistance} zradius 25 targetable playerstate 4]})) /varset IAmDead 0
+		|/xtarget set 1 autohater
 		:DeathSubwait
 		/if (${Window[RespawnWnd].Open} && ${ClickBacktoCamp}==1) {
 			/nomodkey /notify RespawnWnd RW_OptionsList listselect 1 
@@ -68,6 +79,7 @@
 		}
 		/if (${Me.Hovering}) /goto :DeathSubwait
 		/delay 1m !${Me.Zoning}
+		/call CombatReset 0 deathsub
 		/if (${ClickBacktoCamp}==1 && ${FindItem["Fellowship Registration Insignia"].Timer}==0) {
 			/delay 30s ${Me.CombatState.Equal[ACTIVE]}
 			/useitem "Fellowship Registration Insignia"
@@ -77,13 +89,20 @@
 		} else {
 			/echo \aw Waiting on someone that knows how to heal to \ar rez me
 		}
-		/if (${IAmDead} && ${CampZone}==${Zone.ID} && (${Me.Buff[Resurrection Sickness].ID} || ${SpawnCount[pccorpse ${Me}]}==0)) /varset IAmDead 0
+		
 	/return
 
+	Sub Bind_Array(Array)
+		/declare i int local
+		/for i 1 to ${${Array}.Size}
+			/echo Num: ${i} Spell: ${${Array}[${i}].Arg[1,|]} Arg 2: ${${Array}[${i}].Arg[2,|]} Arg 3: ${${Array}[${i}].Arg[3,|]} Cond Num: ${${Array}[${i}].Mid[${Math.Calc[${${Array}[${i}].Find[|cond]}+5]},3]}
+		/next i	
+	/return
+	
 |----------------------------------------------------------------------------
 |- SUB: FindTarget - melee attack portion removed. Melee attack moved into engage sub to reduce too far away and can not see messages
 |---------------------------------------------------------------------------- 
-	
+
 	Sub NewCast(CastTarID, Array, spellcast)
 		/if (${DebugCombat}) /echo \atDEBUG NewCast Enter. ID: ${CastTarID}, Array: ${Array}, Spell: ${spellcast} \agLine#: ${Macro.CurLine}
 		/doevents 
@@ -101,7 +120,7 @@
 		/declare WaitTimerCD2 timer local 
 		
 		/for i 1 to ${${Array}.Size}
-		
+		|${Heals[1].Arg[1,|]}
 			/if (${Bool[${spellcast}]}) {
 				/varset CastThis ${spellcast}
 			} else {
@@ -110,7 +129,7 @@
 			/while (1) {
 				|/if (${${Array}[${i}].Find[|ambush]} || !${Bool[${${Array}[${i}].Arg[1,|]}]}) /break
 				
-				/if ((${Spawn[${TarID}].Type.NotEqual[pet]} && ${${Array}[i].Arg[3,|].Equal[pet]}) || (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[mob]} || ${${Array}[${i}].Arg[3,|].Find[tap]}) && !${CombatStart})) /break
+				/if ((${${Array}[${i}].Arg[3,|].Find[MA]} && !${TarID}==${Spawn[=${MainAssist}].ID}) &&(${Spawn[${TarID}].Type.NotEqual[pet]} && ${${Array}[i].Arg[3,|].Equal[pet]}) || (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[mob]} || ${${Array}[${i}].Arg[3,|].Find[tap]}) && !${CombatStart})) /break
 				/if (${Spawn[${TarID}].Type.Equal[Corpse]} || !${Spawn[${TarID}].ID}) {
 					/if (${DebugCombat}) /echo CombatCast: Return from CombatCast cause my target is a corpse or dead or DPSPaused ${DPSPaused}. \agLine#: ${Macro.CurLine}
 					/return
@@ -120,7 +139,7 @@
 				} else {
 					/varset CondNo 0
 				}
-				/if ((${CondNo}==0 || (${CondNo} && ${If[${Cond[${CondNo}]},1,0]})) && ${CastCheck[${CastThis}]}) {
+				/if (${CastCheck[${CastThis}]} && (${CondNo}==0 || (${CondNo} && ${If[${Cond[${CondNo}]},1,0]}))) {
 					/if (${Bool[${${Array}[${i}].Arg[3,|]}]} && (${${Array}[${i}].Arg[3,|].Find[mob]} || ${${Array}[${i}].Arg[3,|].Find[tap]}) && ${DPSOn} && ${Spawn[${MyTargetID}].Type.NotEqual[Corpse]} && ${Spawn[${MyTargetID}].ID} && ${CombatStart}) {
 						/if (${DebugFramework}) /echo Casting ${CastThis} on Target ${Spawn[${MyTargetID}].CleanName} 
 						/varset TarID ${MyTargetID}
@@ -143,8 +162,9 @@
 						/if (${DebugFramework}) /echo ${CastThis} Command ${TarID} from NewCast
 						/if (${EQBCOn}) /call BroadCast ${EQBCOn} r "Command >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
 					} else /if (${CastThis.Find[script]}) {
-						/call script_${Me.Class.ShortName}
-						/if (${DebugFramework}) /echo ${CastThis} Script ${TarID} from NewCast
+						|/call script_${Me.Class.ShortName}
+						/call ${CastThis}_${Me.Class.ShortName}
+						/if (${DebugFramework}) /echo ${CastThis} ${CastThis} ${TarID} from NewCast
 						/if (${EQBCOn}) /call BroadCast ${EQBCOn} r "Script >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
 					} else /if (${FindItem[=${CastThis}].ID} && ${Me.ItemReady[=${CastThis}]}) {
 						/if (${Me.Subscription.NotEqual[gold]} && ${FindItem[=${CastThis}].Prestige}) /return CAST_NO_RESULT
@@ -245,7 +265,7 @@
 								/if (${EQBCOn}) /call BroadCast ${EQBCOn} r "Spell >> ${CastThis} << on ${Spawn[id ${TarID}].CleanName} (${TarID}) from NewCast"
 								/if (${Array.NotEqual[Burn]}) /return ${CastResult}
 							}
-							/if (${TryNum}<=${MaxTryNum} && (${CastResult.Equal[CAST_RESTART]} || ${CastResult.Equal[CAST_STUNNED]} || ${CastResult.Equal[CAST_FIZZLE]} || ${CastResult.Equal[CAST_COLLAPSE]} || ${CastResult.Equal[CAST_INTERRUPTED]} || ${CastResult.Equal[CAST_RESISTED]})) /goto :Retry_Cast
+							/if (${TryNum}<=${MaxTryNum} && ((${Select[${Array},dps]} && ${Select[${Me.Class.ShortName},CLR,DRU,SHM]}==0) ||${CastResult.Equal[CAST_RESTART]} || ${CastResult.Equal[CAST_STUNNED]} || ${CastResult.Equal[CAST_FIZZLE]} || ${CastResult.Equal[CAST_COLLAPSE]} || ${CastResult.Equal[CAST_INTERRUPTED]} || ${CastResult.Equal[CAST_RESISTED]})) /goto :Retry_Cast
 						} else {
 							/if (${DebugFramework}) /echo Skip Casting ${CastThis}. Spell Not Memed.
 							/varset CastResult CAST_NO_RESULT
@@ -323,7 +343,7 @@
 					/if (${Target.ID}) /squelch /alert add 2 id ${Target.ID}
 					/varset MyTargetID 0
 					/varset MyTargetName
-					/xtarget set 1 autohater
+					|/xtarget set 1 autohater
 					|/echo Invalid Target: ${Me.XTarget[1].CleanName} ${Me.XTarget[1].ID}
 					/echo Invalid Target: ${MyTargetName} ${MyTargetID}
 					/return
@@ -342,44 +362,76 @@
 			|/if (${Spawn[=${Raid.MainAssist} pc].ID} == ${Me.ID}) /call validate_assist NOECHO X
 			|/if (${Bool[${Spawn[${Group.MainAssist}].Dead}]}) /goto :skippingtoMAtarget
 			
-			/if (!${Bool[${Spawn[${SplitAssist1_1}].Dead}]} && ${SplitAssist1_1.NotEqual[NULL]}) {
-				/xtarget assist ${Spawn[${Spawn[${SplitAssist1_1}].CleanName}].ID}
-			} else /if (!${Bool[${Spawn[${SplitAssist1_2}].Dead}]} && ${SplitAssist1_2.NotEqual[NULL]}) {
-				/xtarget assist ${Spawn[${Spawn[${SplitAssist1_2}].CleanName}].ID}
-			} else /if (!${Bool[${Spawn[${SplitAssist2_1}].Dead}]} && ${SplitAssist2_1.NotEqual[NULL]}) {
-				/xtarget assist ${Spawn[${Spawn[${SplitAssist2_1}].CleanName}].ID}
-			} else /if (!${Bool[${Spawn[${SplitAssist2_2}].Dead}]} && ${SplitAssist2_2.NotEqual[NULL]}) {
-				/xtarget assist ${Spawn[${Spawn[${SplitAssist2_2}].CleanName}].ID}
-			} else /if (!${Bool[${Spawn[${MainAssist}].Dead}]}) {
-				|/xtarget assist ${Spawn[${Spawn[${MainAssist}].CleanName}].ID}
-				/assist ${MainAssist}
-			} else /if (${Me.XTarget[1].TargetType.NotEqual[Raid Assist 1 Target]}) {
-				/xtarget set 1 raidassist1target
-			}
-			/delay 1s ${Me.AssistComplete}
-			/varset TempTargetID ${Target.ID}
-			|else /if (${useSmartAssist2} && ${Me.XTarget[1].TargetType.NotEqual[Raid Assist 2 Target]} && ${Raid.Members}) {
-			|	/xtarget set 1 raidassist2target
-			|} else /if (${useSmartAssist3} && ${Me.XTarget[1].TargetType.NotEqual[Raid Assist 3 Target]} && ${Raid.Members}) {
-			|	/xtarget set 1 raidassist3target
-			|}
-			|/delay 10 ${Me.XTarget[1].ID}
-			|/call ValidateTarget ${Me.XTarget[1].ID}
-			/call ValidateTarget ${TempTargetID}
-			/if (${ValidTarget}==0) {
-				/if (${Target.ID}) /squelch /alert add 2 id ${Target.ID}
-				/varset MyTargetID 0
-				/varset MyTargetName
-				/xtarget set 1 autohater
-				|/echo Invalid Target: ${Me.XTarget[1].CleanName} ${Me.XTarget[1].ID}
-				/echo Invalid Target: ${MyTargetName} ${MyTargetID}
-				/return
+			/if (${MainAssist.Equal[${Me}]}) {
+				/if (${Spawn[xtarhater named].ID}) {
+					/varset TempTargetID ${Spawn[xtarhater named].ID}
+				} else /if (${Alert[4].Size} && ${Spawn[xtarhater alert 4].ID} && ${Spawn[xtarhater alert 4].Type.NotEqual[Corpse]}) {
+					/varset TempTargetID ${NearestSpawn[1, xtarhater alert 4].ID}
+				} else {
+					/varset TempTargetID ${SpawnSort[1,asc,PctHPs,xtarhater].ID}
+				}
+				/call ValidateTarget ${TempTargetID}
+				/if (${ValidTarget}==0) {
+					/if (${Target.ID}) /squelch /alert add 2 id ${Target.ID}
+					/varset MyTargetID 0
+					/varset MyTargetName NULL
+					/echo Invalid Target: ${Spawn[id ${TempTargetID}].CleanName} ${TempTargetID}
+					/return
+				} else {
+					/if (${Target.ID}!=${TempTargetID}) {
+					   /squelch /target clear
+					   /delay 10 !${Target.ID}
+					   /target id ${TempTargetID}
+					   /delay 10 ${Target.ID}
+					}
+				   /varset MyTargetID ${Target.ID}
+				   /varset MyTargetName ${Target.CleanName}
+				   /echo Valid Target: ${Target.CleanName} ${Target.ID}
+				}
 			} else {
-				|/varset MyTargetID ${Me.XTarget[1].ID}
-				|/varset MyTargetName ${Me.XTarget[1].CleanName}
-				/varset MyTargetID ${TempTargetID}
-				/varset MyTargetName ${Spawn[id ${TempTargetID}].CleanName}
-				/echo Valid Target: ${MyTargetName} ${MyTargetID}
+				/if (!${Bool[${Spawn[${SplitAssist1_1}].Dead}]} && ${SplitAssist1_1.NotEqual[NULL]}) {
+					|/xtarget assist ${Spawn[${Spawn[${SplitAssist1_1}].CleanName}].ID}
+					/assist ${Spawn[${SplitAssist1_1}].CleanName}
+				} else /if (!${Bool[${Spawn[${SplitAssist1_2}].Dead}]} && ${SplitAssist1_2.NotEqual[NULL]}) {
+					|/xtarget assist ${Spawn[${Spawn[${SplitAssist1_2}].CleanName}].ID}
+					/assist ${Spawn[${SplitAssist1_2}].CleanName}
+				} else /if (!${Bool[${Spawn[${SplitAssist2_1}].Dead}]} && ${SplitAssist2_1.NotEqual[NULL]}) {
+					|/xtarget assist ${Spawn[${Spawn[${SplitAssist2_1}].CleanName}].ID}
+					/assist ${Spawn[${SplitAssist2_1}].CleanName}
+				} else /if (!${Bool[${Spawn[${SplitAssist2_2}].Dead}]} && ${SplitAssist2_2.NotEqual[NULL]}) {
+					|/xtarget assist ${Spawn[${Spawn[${SplitAssist2_2}].CleanName}].ID}
+					/assist ${Spawn[${SplitAssist2_2}].CleanName}
+				} else /if (!${Bool[${Spawn[${MainAssist}].Dead}]}) {
+					|/xtarget assist ${Spawn[${Spawn[${MainAssist}].CleanName}].ID}
+					/assist ${MainAssist}
+				} else /if (${Me.XTarget[1].TargetType.NotEqual[Raid Assist 1 Target]}) {
+					/xtarget set 1 raidassist1target
+				}
+				/delay 1s ${Me.AssistComplete}
+				/varset TempTargetID ${Target.ID}
+				|else /if (${useSmartAssist2} && ${Me.XTarget[1].TargetType.NotEqual[Raid Assist 2 Target]} && ${Raid.Members}) {
+				|	/xtarget set 1 raidassist2target
+				|} else /if (${useSmartAssist3} && ${Me.XTarget[1].TargetType.NotEqual[Raid Assist 3 Target]} && ${Raid.Members}) {
+				|	/xtarget set 1 raidassist3target
+				|}
+				|/delay 10 ${Me.XTarget[1].ID}
+				|/call ValidateTarget ${Me.XTarget[1].ID}
+				/call ValidateTarget ${TempTargetID}
+				/if (${ValidTarget}==0) {
+					/if (${Target.ID}) /squelch /alert add 2 id ${Target.ID}
+					/varset MyTargetID 0
+					/varset MyTargetName
+					|/xtarget set 1 autohater
+					|/echo Invalid Target: ${Me.XTarget[1].CleanName} ${Me.XTarget[1].ID}
+					/echo Invalid Target: ${MyTargetName} ${MyTargetID}
+					/return
+				} else {
+					|/varset MyTargetID ${Me.XTarget[1].ID}
+					|/varset MyTargetName ${Me.XTarget[1].CleanName}
+					/varset MyTargetID ${TempTargetID}
+					/varset MyTargetName ${Spawn[id ${TempTargetID}].CleanName}
+					/echo Valid Target: ${MyTargetName} ${MyTargetID}
+				}
 			}
 		}
 
@@ -486,7 +538,7 @@
 	
 	Sub EngageTarget
 		/if (${DebugCombat}) /echo \atDEBUG EngageTarget Enter \agLine#: ${Macro.CurLine}
-		/echo Engaging >> ${MyTargetID}
+		/bc Engaging >> ${MyTargetID}
 		/doevents
 		/varset MercAssisting 0
 		/varset CombatStart 1
@@ -498,8 +550,9 @@
 			/squelch /target id ${MyTargetID}
 			/delay 10 ${Target.ID}==${MyTargetID}
 			|/if (${MeleeOn}) /nav id ${MyTargetID}
-			/if (${MeleeOn}) /moveto id ${MyTargetID}
+			
 		}
+		/if (${MeleeOn}) /moveto id ${MyTargetID}
 		/if (!${Me.Combat} && ${BeforeArray[1].NotEqual[null]}) /call BeforeAttack ${MyTargetID} 2
 
 		/if (${DPSOn} && ${MeleeOn} && !${Attacking}) {
@@ -547,7 +600,7 @@
 		}
 		
 		|COMBAT LOOP
-		
+		/bc Going into While Loop. Killing : ${MyTargetName ID: ${MyTargetID}
 		/while (1) {
 			|/bc ${MyTargetID}
 			AMIDEAD
@@ -631,7 +684,7 @@
 		/varset MyTargetID 0
 		/varset healcount 0
 		/varset CombatStart 0
-		/xtarget set 1 autohater
+		|/xtarget set 1 autohater
 		/if (${UseTribute} && ${Me.TributeActive}) {
 		   /squelch /tribute personal off
 		   

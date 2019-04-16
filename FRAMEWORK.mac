@@ -177,6 +177,8 @@
 #event swarmover "[MQ2] nomorepewpew"
 #event Loot "[MQ2] loot time"
 
+#event TheDarknessHowls     "#*#Restart complete. Initiating aerial attack pattern#*#"
+#event MobMez     			"#*#Platinum Rainbow Spire begins to cast a spell. <Call of the Sea>"
 | -------------------------------------------------------------------------------------
 | New Binds to replace old Events
 | -------------------------------------------------------------------------------------
@@ -206,6 +208,7 @@
 #bind WriteMySpells  /writespells
 #bind ZoneInfo       /zoneinfo
 #bind combatreset    /combatreset
+#bind Array		     /Array
 | -------------------------------------------------------------------------------------
 | Sub Main
 | -------------------------------------------------------------------------------------
@@ -812,6 +815,7 @@ Sub Main
     /declare MainAssist             string      outer
     /declare MainAssistClass        string      outer
     /declare MainAssistType         string      outer
+	/declare MainAssistID	        int         outer       0
     /declare MashArray[10]          string      outer       null
     /declare MedStat                string      outer
     /declare MedStat2               string      outer       Endurance
@@ -1303,11 +1307,13 @@ Sub Main
 			/squelch /melee aggro=0
 			
 		}
-		/call GeneralDeclares3
+		
 		|/varset Role raidassist
 		/varset ReturnToCamp 0
 		/varset ChaseAssist 0
 		/varset CastingInterruptOn 0
+		
+		/varset AutoRezAll 1
 	}
 	
 |-------------------------------------------------------------------------------------
@@ -1318,8 +1324,9 @@ Sub Main
 	/while (1) {
 		
 		AMIDEAD
+		
 		/if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
-		/if (!${Role.Equal[raidassist]} && !${Role.Equal[manual]} && !${Select[${Zone.ID},345,344,202,203,279]}) {
+		/if (!${Role.Equal[raidassist]} && !${Role.Equal[manual]} && !${Select[${Zone.ID},345,344,202,279]}) {
 			/doevents
 			
 			/if (${ChainPull}!=2) {
@@ -1327,14 +1334,14 @@ Sub Main
 				/call CampfireBack
 				/if (${Cursor.ID}) /call CheckCursor
 				/if (${AFKToolsOn}) /call AFKTools
-				
+				/if (${IAmDead}) /call DeathSub
 				|Checking for combat
-				/if (!${DPSPaused} && ${Select[${Role},manual,tank,pettank,pullertank,pullerpettank,hunter,hunterpettank]} && (!${Me.Combat} || ${Target.ID}!=${MyTargetID} || ${MyTargetID}==0) && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call NewFindTarget 1
+				/if (!${DPSPaused} && ${Select[${Role},manual,tank,pettank,pullertank,pullerpettank,hunter,hunterpettank]} && (!${Me.Combat} || ${Target.ID}!=${MyTargetID} || ${MyTargetID}==0) && ${SpawnCount[npc radius ${MeleeDistance} zradius 25 targetable playerstate 4]}) /call NewFindTarget 1
 				|/if (!${DPSPaused} && !${Spawn[${MainAssistType} ${MainAssist} group].ID} && !${Select[${Role},assist, manual,petassist,tank,puller,offtank]} && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call FindTarget 2
-				/if (!${DPSPaused} && ${Select[${Role},assist,petassist,puller,offtank,raidassist]} && (${MyTargetID}==0 || !${Spawn[targetable id ${MyTargetID}].ID} || ${Spawn[corpse id ${MyTargetID}].ID} || ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}|| ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}>${AssistAt}) && ${SpawnCount[npc radius ${MeleeDistance} zradius 15 targetable playerstate 4]}) /call NewFindTarget 2
+				/if (!${DPSPaused} && ${Select[${Role},assist,petassist,puller,offtank,raidassist]} && (${MyTargetID}==0 || !${Spawn[targetable id ${MyTargetID}].ID} || ${Spawn[corpse id ${MyTargetID}].ID} || ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}>${MeleeDistance}|| ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}>${AssistAt}) && ${SpawnCount[npc radius ${MeleeDistance} zradius 25 targetable playerstate 4]}) /call NewFindTarget 2
 		|&& ${Me.XTarget[1].ID}
 				|/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && ((!${Target.Mezzed.ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt}) || ${Select[${Role},manual,tank,pettank,pullertank,pullerpettank,hunter,hunterpettank,offtank]} && (!${ReturnToCamp} || ${Math.Distance[${CampYLoc},${CampXLoc}]} < 10) )) /call EngageTarget
-				/if (!${DPSPaused} && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && ((!${Target.Mezzed.ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt}) || ${Select[${Role},manual,tank,pettank,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) /call EngageTarget
+				/if (!${DPSPaused} && (!${ReturnToCamp} || (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]} < ${MeleeDistance}) ) && !${Spawn[corpse id ${MyTargetID}].ID} && ${Spawn[targetable id ${MyTargetID}].ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].Distance}<${MeleeDistance} && ((!${Target.Mezzed.ID} && ${Spawn[${SpawnSearchType} id ${MyTargetID}].PctHPs}<=${AssistAt}) || ${Select[${Role},manual,tank,pettank,pullertank,pullerpettank,hunter,hunterpettank,offtank]})) /call EngageTarget
 				/call _${Me.Class.ShortName}
 				|/call CombatReset 0 mainloop
 			
@@ -1345,7 +1352,7 @@ Sub Main
 				/call CastMana MainLoop
 				
 				/if (${CuresOn}) /call CheckCures
-				/if (${SpawnCount[npc radius ${CampRadius} zradius 15 targetable playerstate 4]} < 2) {
+				/if (${SpawnCount[npc radius ${CampRadius} zradius 25 targetable playerstate 4]} < 1) {
 					/if (${PetOn}) {
 						/call DoPetStuff
 						/call CheckPetBuffs
@@ -1366,14 +1373,14 @@ Sub Main
 						/if (${GroupWatchOn}) /call GroupWatch
 					}
 				}
-				/if (${IAmDead}) /call DeathSub
+				
 				
 			} else {
 				/if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
 				/call AFKTools
 			}
 			
-			/if (${Select[${Role},puller,pullertank,pullerpettank,hunter,hunterpettank]}) {
+			/if ((!${Me.XTarget[1].ID} && !${ChainPull} && ${Select[${Role},puller,pullertank,pullerpettank,hunter,hunterpettank]}) || (${ChainPull} && ${Select[${Role},puller]})) {
 				
 				/if (!${PullMob}) /call FindMobToPull 1
 				/call PullCheck
@@ -1758,6 +1765,9 @@ Sub Main
         /declare i int local
         /declare j int local
         /call MobRadar ${MeleeDistance} CombatReset
+		/if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]}>20 && ${SpawnCount[npc radius ${CampRadius} zradius 25 targetable playerstate 4]} < 1) {
+		   /call DoWeMove 1 CheckForCombat
+		}
         /for j 1 to 50
             |/if (${AddsArray[${j},1].Equal[${MyTargetID}]}) /call RemoveFromArray AddsArray ${j}
             |/if (${MobCount}==0) /call RemoveFromArray AddsArray ${j}
@@ -1804,16 +1814,16 @@ Sub Main
         /squelch /attack off
 		/if (${Me.AutoFire}) /autofire
 		/squelch /target clear
-        /if (!${Group.Member[${MainAssist}].Index} && !${IAmMA}) /xtarget set ${XTSlot} autohater
+        /if ((!${Group.Member[${MainAssist}].Index} && !${IAmMA}) || (${IAmMA} && ${Me.XTarget}==0)) /xtarget set ${XTSlot} autohater
         /varset Attacking 0
-        /if (${DPSOn}) {
-            /for i 1 to ${DPS.Size}
-                /if (${Int[${DPS[${i}].Arg[2,|]}]}<101) { 
-                    /varset DPSTimer${i} 0
-                    /varset FDTimer${i}  0
-                }
-            /next i
-        }
+        |/if (${DPSOn}) {
+        |    /for i 1 to ${DPS.Size}
+        |        /if (${Int[${DPS[${i}].Arg[2,|]}]}<101) { 
+        |            /varset DPSTimer${i} 0
+        |            /varset FDTimer${i}  0
+        |        }
+        |    /next i
+        |}
         /if (${Me.Pet.ID}) {
             /varset PetAttack 0
             /pet back off
@@ -1871,16 +1881,16 @@ Sub Main
                 /if (${DebugCast}) /echo \atDEBUGCAST CastWhat \aw Target Info !${Target.ID} ${Target.ID}!=${WhatID} ${Spawn[id ${WhatID}].ID} \agLine#: ${Macro.CurLine}
                 /if (!${Target.ID} && ${Spell[${castWhat}].TargetType.NotEqual[Self]} || (${Target.ID}!=${WhatID} && ${Spawn[id ${WhatID}].ID})) /call CastTarget ${WhatID}
                 /if (${Cond#} && ${If[${Cond[${Cond#}]},0,1]}) /return ${CastResult}
-                /if (${sentFrom.Equal[DPS]} && ${Spell[${castWhat}].SpellType.Equal[Detrimental]}) {
-                    /if (!${Me.CombatAbilityReady[${castWhat}]} && !${Me.AbilityReady[${castWhat}]} && (${Me.AltAbilityReady[${castWhat}]} || ${Me.SpellReady[${castWhat}]})) {
-                        /call CastDPSSpellCheck "${castWhat}"
-                        /if (${DebugCast}) /echo \atDEBUGCAST CastWhat ${Macro.Return} \agLine#: ${Macro.CurLine}
-                        /if (${Macro.Return}) {
-                            /if (${DebugCast}) /echo \atDEBUGCAST CastWhat --${castWhat} is already on Mob. Skipping. \agLine#: ${Macro.CurLine}
-                            /return ${CastResult}
-                        }
-                    } 
-                }
+               | /if (${sentFrom.Equal[DPS]} && ${Spell[${castWhat}].SpellType.Equal[Detrimental]}) {
+                |    /if (!${Me.CombatAbilityReady[${castWhat}]} && !${Me.AbilityReady[${castWhat}]} && (${Me.AltAbilityReady[${castWhat}]} || ${Me.SpellReady[${castWhat}]})) {
+                |        /call CastDPSSpellCheck "${castWhat}"
+                |        /if (${DebugCast}) /echo \atDEBUGCAST CastWhat ${Macro.Return} \agLine#: ${Macro.CurLine}
+                |        /if (${Macro.Return}) {
+                |            /if (${DebugCast}) /echo \atDEBUGCAST CastWhat --${castWhat} is already on Mob. Skipping. \agLine#: ${Macro.CurLine}
+                |            /return ${CastResult}
+                |        }
+               |     } 
+                |}
                 /if (${sentFrom.Find[Buffs]} && ${Spell[${castWhat}].SpellType.Find[Beneficial]} && ${WhatID}!=${Me.ID}) {
                     /call CastBuffsSpellCheck "${castWhat}"
                     /if (${DebugCast}) /echo \atDEBUGCAST CastWhat ${Macro.Return} \agLine#: ${Macro.CurLine}
@@ -2075,31 +2085,31 @@ Sub Main
 | ----------------------------------------------------------------------------
 | SUB: Cast DPS Spell Check ${Spell[${Spell[Gift of T'Vem].ID}].RecastTime}
 | ----------------------------------------------------------------------------        
-    Sub CastDPSSpellCheck(SpellToCheck)  
-        /if (${DebugCast}) /echo \atDEBUGCAST DPSSpellCheck \awEnter \agLine#: ${Macro.CurLine}
-        /declare i int local 0
-        /declare k int local 0
-        /for i 1 to 85
-            /if (${Target.Buff[${i}].ID}==0) /break
-            /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck \aw ${i} ${Target.Buff[${i}].Name} ${Int[${Target.Buff[${i}].ID}]}==${Spell[${SpellToCheck}].ID} ${Target.Buff[${i}].Caster} ${Spell[${SpellToCheck}].NumEffects} \agLine#: ${Macro.CurLine}
-            /if (${Target.Buff[${i}].ID}==${Spell[${SpellToCheck}].ID} && ${Target.Buff[${i}].Caster.Equal[${Me}]}) {
-                /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck ${Target.Buff[${i}].Name} is already on the target. \agLine#: ${Macro.CurLine}
-                /return TRUE
-            }
-            /if (${Spell[${SpellToCheck}].HasSPA[470]}==TRUE) {
-                /for k 1 to ${Spell[${SpellToCheck}].NumEffects} 
-                    /if (${Spell[${SpellToCheck}].Attrib[${k}]}==470) {
-                        /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck ${k} ${Target.Buff[${i}].ID}==${Spell[${SpellToCheck}].Trigger[${k}].ID} ${Target.Buff[${i}].Name}==${Spell[${SpellToCheck}].Trigger[${k}].Name} && ${Target.Buff[${i}].Caster.Equal[${Me}]} 
-                        /if (${Target.Buff[${i}].ID}==${Spell[${SpellToCheck}].Trigger[${k}].ID} && ${Target.Buff[${i}].Caster.Equal[${Me}]}) {
-                            /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck The spell ${SpellToCheck}triggers ${Spell[${SpellToCheck}].Trigger[${k}].Name} is already on the target. \agLine#: ${Macro.CurLine}
-                            /return TRUE
-                        }
-                    }
-                /next k
-            }
-        /next i
-        /if (${DebugCast}) /echo \atDEBUGCAST DPSSpellCheck \awLeave \agLine#: ${Macro.CurLine}
-    /return FALSE  
+    |Sub CastDPSSpellCheck(SpellToCheck)  
+    |    /if (${DebugCast}) /echo \atDEBUGCAST DPSSpellCheck \awEnter \agLine#: ${Macro.CurLine}
+    |    /declare i int local 0
+    |    /declare k int local 0
+    |    /for i 1 to 85
+    |        /if (${Target.Buff[${i}].ID}==0) /break
+    |        /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck \aw ${i} ${Target.Buff[${i}].Name} ${Int[${Target.Buff[${i}].ID}]}==${Spell[${SpellToCheck}].ID} ${Target.Buff[${i}].Caster} ${Spell[${SpellToCheck}].NumEffects} \agLine#: ${Macro.CurLine}
+    |        /if (${Target.Buff[${i}].ID}==${Spell[${SpellToCheck}].ID} && ${Target.Buff[${i}].Caster.Equal[${Me}]}) {
+    |            /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck ${Target.Buff[${i}].Name} is already on the target. \agLine#: ${Macro.CurLine}
+    |            /return TRUE
+     |       }
+    |        /if (${Spell[${SpellToCheck}].HasSPA[470]}==TRUE) {
+    |            /for k 1 to ${Spell[${SpellToCheck}].NumEffects} 
+    |                /if (${Spell[${SpellToCheck}].Attrib[${k}]}==470) {
+    |                    /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck ${k} ${Target.Buff[${i}].ID}==${Spell[${SpellToCheck}].Trigger[${k}].ID} ${Target.Buff[${i}].Name}==${Spell[${SpellToCheck}].Trigger[${k}].Name} && ${Target.Buff[${i}].Caster.Equal[${Me}]} 
+    |                    /if (${Target.Buff[${i}].ID}==${Spell[${SpellToCheck}].Trigger[${k}].ID} && ${Target.Buff[${i}].Caster.Equal[${Me}]}) {
+     |                       /if (${DebugCast}) /echo \atDEBUGCOMBAT DPSSpellCheck The spell ${SpellToCheck}triggers ${Spell[${SpellToCheck}].Trigger[${k}].Name} is already on the target. \agLine#: ${Macro.CurLine}
+     |                       /return TRUE
+    |                    }
+    |                }
+     |           /next k
+    |        }
+    |    /next i
+    |    /if (${DebugCast}) /echo \atDEBUGCAST DPSSpellCheck \awLeave \agLine#: ${Macro.CurLine}
+   | /return FALSE  
 | ----------------------------------------------------------------------------
 | SUB: Cast Buffs Spell Check
 | ----------------------------------------------------------------------------        
@@ -2142,38 +2152,7 @@ Sub Main
         /next i
         /if (${DebugCast}) /echo \atDEBUGCAST CastBuffsSpellCheck \awLeave \agLine#: ${Macro.CurLine} 
     /return FALSE
-| -------------------------------------------------------------------------------------
-| SUB: Cast Weave
-| -------------------------------------------------------------------------------------    
-    Sub CastWeave(TarID)
-        /if (${DebugCast}) /echo \atDEBUGCAST CastWeave \awEnter \agLine#: ${Macro.CurLine} 
-        /declare i int local
-        /declare DPSat1 int Local 0
-        /declare DPSWeaveDelay timer local 2
-        /declare DPSWeaveSpell string local
-        /declare DPSWeaveArg3 string local         
-        /declare DPSWeaveArg4 string local     
-        /for i 1 to ${WeaveArray.Size}
-            /varset DPSat1 ${Int[${WeaveArray[${i}].Arg[2,|]}]}
-            /varset DPSWeaveSpell ${WeaveArray[${i}].Arg[1,|]}
-            /if (${Debug}) /echo \at Cast DPSWeaveSpell:(${DPSWeaveSpell}) at (${DPSat1}%) ${i} \agLine#: ${Macro.CurLine}
-            /if (${DPSat1}==0 || !${TarID} || ${Spawn[${TarID}].Type.Equal[corpse]}) /return 
-            /if (${DPSat1}<${Spawn[${TarID}].PctHPs}) /continue
-            /if (!${ConOn} || !${WeaveArray[${i}].Find[|cond]} || ${If[${Cond[${WeaveArray[${i}].Mid[${Math.Calc[${WeaveArray[${i}].Find[|cond]}+5]},3]}]},1,0]}) {
-            /if (${Me.AltAbilityReady[${WeaveArray[${i}].Arg[1,|]}]} || ${Me.ItemReady[${WeaveArray[${i}].Arg[1,|]}]} || ${Me.CombatAbilityReady[${WeaveArray[${i}].Arg[1,|]}]} || ${Me.AbilityReady[${WeaveArray[${i}].Arg[1,|]}]}) {
-                    /call CastWhat "${DPSWeaveSpell}" ${TarID} WeaveStuff 0 0
-                /while (${DPSWeaveDelay}) {
-                    /doevents
-                }
-                /if (${Macro.Return.Equal[CAST_SUCCESS]})  {
-                    /echo -- Weaving: ${DPSWeaveSpell}
-                    /return 1
-                }
-            } 
-            }
-        /next i
-        /if (${DebugCast}) /echo \atDEBUGCAST CastWeave \awLeave \agLine#: ${Macro.CurLine} 
-    /return 0    
+
 |--------------------------------------------------------------------------------------
 | SUB: CastBard
 |--------------------------------------------------------------------------------------
@@ -2190,8 +2169,10 @@ Sub Main
         /if (${Spell[BardSpell].TargetType.NotEqual[Self]} && ${Target.ID}!=${WhatID} && ${Spawn[id ${WhatID}].ID}) /call CastTarget ${WhatID}
         /if (${FindItem[=${BardSpell}].ID}) {
             /if (${Debug}) /echo I am a bard CastBard ${BardSpell}
-            /useitem "${BardSpell}"
-            /delay 5
+            /if (${Twist}) /squelch /twist off
+			/stopsong
+			/useitem "${BardSpell}"
+            /delay 10 ${Me.Casting.ID}
             /while (${Me.Casting.ID} && ${Me.Casting.ID}==${FindItem[=${BardSpell}].Spell.ID}) {
                 /delay 5
             }
@@ -2254,6 +2235,7 @@ Sub Main
         /if (${Me.Gem[${WhatMemSpell}]}) {
             /varset WaitTimerCM 350
             /while (!${Me.SpellReady[${WhatMemSpell}]} && ${WaitTimerCM}) {
+				MOBINCAMP
 				/if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
                 /delay 5
             }
@@ -2308,6 +2290,8 @@ Sub Main
 | SUB: CastMemSpell
 |--------------------------------------------------------------------------------------
     Sub CastMemSpell(SpellToMem, int gemNum, int ForceIt, string sentFrom)
+		/declare WaitTimerCD3 timer local 
+		MOBINCAMP
         /if (${DebugCast}) /echo \atDEBUGCAST CastMemSpell Enter \agLine#: ${Macro.CurLine}
         /if (${Int[${SpellToMem.Length}]}==0 || ${SpellToMem.Equal[null]} || ${gemNum}==0) /return
 
@@ -2325,9 +2309,11 @@ Sub Main
                 /delay 20 ${Int[${Me.Gem[${gemNum}].ID}]}==0
             }
             /if (!${Int[${Me.Gem[${gemNum}].Name.Length}]} || ${Me.Gem[${gemNum}].Name.NotEqual[${SpellToMem}]}) {
-                /while (${Me.Moving}) {
+                /varset WaitTimerCD3 30
+				/while (${Me.Moving}) {
 					/if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
                     /delay 5
+					/if (!${WaitTimerCD3}) /break
                 }
                 /echo Memming ${SpellToMem} in slot ${gemNum}
                 /if (${Stick.Active}) {
@@ -2383,7 +2369,7 @@ Sub Main
             /if (${DebugCast}) /echo \atDEBUGCAST CastInteruptDPSCheckDPS1: ${Target.PctHPs} ${Target.Type} ${Int[${Target.ID}]} \agLine#: ${Macro.CurLine}
         }
         /if (${HealsOn}) {
-            /if (!${IAmMA} && ${Spawn[${MainAssist}].PctHPs}<70 && ${Spawn[${MainAssist} ${MainAssistType}].ID} && ${Spawn[${MainAssist} ${MainAssistType}].Type.NotEqual[corpse]}) {
+            /if (!${IAmMA} && ${Spawn[${MainAssist}].PctHPs} <= ${Math.Calc[${${MainAssistClass}Point}*.${tmpHealOverride}]} && ${Spawn[${MainAssist} ${MainAssistType}].ID} && ${Spawn[${MainAssist} ${MainAssistType}].Type.NotEqual[corpse]}) {
                 /stopcast
                 /varset CastResult CAST_CANCELLED
                 /echo ${CIDSpell} interrupted due to The Main Assist Needs a Heal.
@@ -2417,8 +2403,8 @@ Sub Main
             /if (${DebugCast}) /echo \atDEBUGCAST CheckBUFFS3: ${Int[${Me.Casting.ID}]}  ${Target.Distance} ${Me.Casting.Range} ${Me.Casting.AERange} ${Me.Casting} \agLine#: ${Macro.CurLine}
         }
         /if (${DebugCast}) /echo \atDEBUGCAST CastInteruptBuffs Leave \agLine#: ${Macro.CurLine}
-    /return       
-|*****************************************************************************************************************************************|    
+    /return     
+	
 | -------------------------------------------------------------------------------------
 | SUB: Do We Move
 | -------------------------------------------------------------------------------------
@@ -2747,7 +2733,7 @@ Sub Main
 		
         /if (${Select[${Me.Class.ShortName},BST,BRD,CLR,DRU,ENC,MAG,NEC,PAL,RNG,SHM,SHD,WIZ]}) /varset MedStat Mana
         /if (${Select[${Me.Class.ShortName},BER,MNK,ROG,WAR]}) /varset MedStat Endurance
-		
+		MOBINCAMP
         /if (!${Me.Moving}) {
             /if (${Select[${Me.Class.ShortName},BRD,BST,PAL,RNG,SHD]} && ${Me.Pct${MedStat2}}<${MedStart} && ${Me.Pct${MedStat}}>${MedStart})  {
                 /varset MedStat1 ${MedStat}
@@ -2807,9 +2793,10 @@ Sub Main
                 /if (${Medding}) /echo Medding until ${MedStat} 100% ${Me.Pct${MedStat}} ${MedStart}
                 /if (${Me.Pct${MedStat}}<${MedStart}) /call BroadCast ${EQBCOn} t "My ${MedStat} is ${Me.Pct${MedStat}}% time to med."
                 /while (1) {
-				
+					
                     /if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
 					/doevents
+					MOBINCAMP
 					/call CampfireBack
                     /if (${ChaseAssist}) /call DoWeChase
                     /if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]} > 15) {
@@ -2931,6 +2918,7 @@ Sub Main
         | Call Buffs Array
         /for i 1 to ${Buffs.Size}
             /doevents
+			
 			MOBINCAMP
 			
             /if (${AggroTargetID} && ${Spawn[${AggroTargetID}].Distance}<200) /return
@@ -3050,7 +3038,7 @@ Sub Main
                 /if (!${CondNo} || ${If[${Cond[${CondNo}]},1,0]}) {
                 /echo Removing Buff: ${SpellToCast}
                 /removebuff "${SpellToCast}" 
-				/nomodkey /notify BuffWindow Buff${Math.Calc[${Me.Buff[${SpellToCast}].ID}].Int} leftmouseup
+				/nomodkey /notify BuffWindow Buff${Math.Calc[${Me.Buff[${SpellToCast}].ID}-1].Int} leftmouseup
                 }
             | If buff cost more mana than I have skip it
             } else /if (${Spell[${SpellToCast}].Mana} && ${Spell[${SpellToCast}].Mana}>${Me.CurrentMana}) {
@@ -3138,6 +3126,7 @@ Sub Main
                     /if (${ForceGroup}) {
                         /if (${DebugFramework}) /Echo Current Line ${Macro.CurLine}
 						/while (${Me.SpellInCooldown}) {
+							MOBINCAMP
                             /delay 5
                         }
                         /continue
@@ -3220,7 +3209,7 @@ Sub Main
                         /useitem "Call of the Wild"
                         /delay 15
                     } else {
-                    /call CastWhat "${SpellToCast}" ${Me.ID} Buffs 0 ${CondNo}
+						/call CastWhat "${SpellToCast}" ${Me.ID} Buffs 0 ${CondNo}
                     }
                     /if (${Macro.Return.Equal[CAST_SUCCESS]}) /echo Clicking > ${SpellToCast} <
             }
@@ -5725,6 +5714,7 @@ Sub Main
         /varset MainAssist ${Target.CleanName}
         /varset MainAssistType ${Target.Type}
         /varset MainAssistClass ${Target.Class.ShortName}
+		/varset MainAssistID    ${Target.ID}
         /if (${Debug}) /echo \atDEBUG AssignMainAssist Leave \agLine#: ${Macro.CurLine}
     /return
 | -------------------------------------------------------------------------------------
@@ -5798,8 +5788,10 @@ Sub Main
             }
             /varset ReturnToCamp 1
             /varset ChaseAssist 0
-			/varset PetAttackRange ${PetAttackDistance}
-            /varcalc CampRadiusExceed ${MaxRadius}+200
+			/if (${Select[${Me.Class.ShortName},DRU,SHM,BST,ENC,MAG,NEC,SHD]}) {
+				/varset PetAttackRange ${PetAttackDistance}
+            }
+			/varcalc CampRadiusExceed ${MaxRadius}+200
             /if (${Pet.ID} && ${Me.Pet.Distance}<=${CampRadius}) /pet guard
             /if (${Pet.ID} && ${Me.Pet.Distance}>${CampRadius}) /pet follow            
         } else /if (${Select[${Role},hunter]}) {
@@ -5824,7 +5816,7 @@ Sub Main
             /if (${UseMQ2Melee}) /squelch /melee aggro=0
             /varset AssistAt 100
             /varset PetTanking 1
-            /varset PetAttackRange ${PetAttackDistance}            
+            /if (${Select[${Me.Class.ShortName},DRU,SHM,BST,ENC,MAG,NEC,SHD]}) /varset PetAttackRange ${PetAttackDistance}            
             /varset ReturnToCamp 0
             /varset ChaseAssist 0
             /varset MountOn 0
@@ -5842,7 +5834,7 @@ Sub Main
 			/varset IAmMA 1			   
             /varset AssistAt 100
             /varset PetTanking 1
-            /varset PetAttackRange ${PetAttackDistance}
+            /if (${Select[${Me.Class.ShortName},DRU,SHM,BST,ENC,MAG,NEC,SHD]}) /varset PetAttackRange ${PetAttackDistance}
             /varset MountOn 0
             /varcalc CampRadiusExceed ${MaxRadius}+200
             /while (${Me.Pet.ID} && !${PetTauntOn}) {
@@ -5864,7 +5856,7 @@ Sub Main
             /varset AssistAt 100
             /varset MeleeOn 0
             /varset PetTanking 1
-            /varset PetAttackRange ${PetAttackDistance}
+            /if (${Select[${Me.Class.ShortName},DRU,SHM,BST,ENC,MAG,NEC,SHD]}) /varset PetAttackRange ${PetAttackDistance}
             /varset ReturnToCamp 1
             /varset ChaseAssist 0
             /varset MountOn 0
@@ -6196,41 +6188,42 @@ Sub Main
         /if (${DebugPull}) /echo \atDEBUGPULL FindMobNAV Enter ${PFlag} \agLine#: ${Macro.CurLine}
                 | Pull mob with shortest path by joojoobee
         /for p 1 to ${ECount}
-                    /if (${PRole.Find[hunter]}) {
-                        /varset PathArray[${p}] ${NearestSpawn[${p}, npc loc ${Me.X} ${Me.Y} radius ${MaxRadius} zradius ${MaxZRange} targetable noalert 1].ID}
-                    } else {
-                        /varset PathArray[${p}] ${NearestSpawn[${p}, npc loc ${CampXLoc} ${CampYLoc} radius ${MaxRadius} zradius ${MaxZRange} targetable noalert 1].ID}
-                    }
-                    /varset PullMob ${PathArray[${p}]}
-                    /if (${Navigation.PathExists[id ${PullMob}]} && ${PRole.Find[hunter]}) {
-                        /if (${Navigation.PathLength[id ${PullMob}]}>=${PullRange}) {
-                            /varset PathDistance[${p}] 10000
-                            /if (${DebugPull}) /echo hunter mob outside of pull range >>${Navigation.PathLength[id ${PullMob}]}<< skipping. \agLine#: ${Macro.CurLine}
-                        }
-                    }  else /if (${Navigation.PathExists[id ${PullMob}]}) {
-                        /varset PathDistance[${p}] ${Navigation.PathLength[id ${PullMob}]} 
-                        /if (${DebugPull}) /echo Succsesfully Added ${Navigation.PathExists[id ${PullMob}]} (dist :${PathDistance[${p}]}) to the pull array. \agLine#: ${Macro.CurLine}
-                    } else {
-                        /varset PathDistance[${p}] 100000
-                    }
-                /next p
+			/if (${PRole.Find[hunter]}) {
+				/varset PathArray[${p}] ${NearestSpawn[${p}, npc loc ${Me.X} ${Me.Y} radius ${MaxRadius} zradius ${MaxZRange} targetable noalert 1].ID}
+			} else {
+				/varset PathArray[${p}] ${NearestSpawn[${p}, npc loc ${CampXLoc} ${CampYLoc} radius ${MaxRadius} zradius ${MaxZRange} targetable noalert 1].ID}
+			}
+			/varset PullMob ${PathArray[${p}]}
+			/if (${Navigation.PathExists[id ${PullMob}]} && ${PRole.Find[hunter]}) {
+				/if (${Navigation.PathLength[id ${PullMob}]}>=${PullRange}) {
+					/varset PathDistance[${p}] 10000
+					/if (${DebugPull}) /echo hunter mob outside of pull range >>${Navigation.PathLength[id ${PullMob}]}<< skipping. \agLine#: ${Macro.CurLine}
+				}
+			}  else /if (${Navigation.PathExists[id ${PullMob}]}) {
+				/varset PathDistance[${p}] ${Navigation.PathLength[id ${PullMob}]} 
+				/if (${DebugPull}) /echo Succsesfully Added ${Navigation.PathExists[id ${PullMob}]} (dist :${PathDistance[${p}]}) to the pull array. \agLine#: ${Macro.CurLine}
+			} else {
+				/varset PathDistance[${p}] 100000
+			}
+		/next p
+		
         /if (${ECount}>1) {
             /for m 1 to ${ECount}
-                        /varset PathCount ${m}
+				/varset PathCount ${m}
                 /varcalc m2 ${m} + 1
                 /for n ${m2} to ${ECount}
-                            /if (${PathDistance[${n}]} < ${PathDistance[${PathCount}]}) /varset PathCount ${n}
-                        /next n
-                        /varset SortIDTemp ${PathArray[${m}]}
-                        /varset SortDistTemp ${PathDistance[${m}]}
-                        /varset PathArray[${m}] ${PathArray[${PathCount}]}
-                        /varset PathArray[${PathCount}] ${SortIDTemp}
-                        /varset PathDistance[${m}] ${PathDistance[${PathCount}]}
-                        /varset PathDistance[${PathCount}] ${SortDistTemp}
-                /if (${m2}==${ECount}) /break
-                /if (${DebugPull}) /echo \atDEBUGPULL /echo \atDEBUGPULL FindMobNAV: PathNum: ${PathDistance[${m}]} PathDistance:${PathDistance[${PathCount}]} \agLine#: ${Macro.CurLine}
-                    /next m
-                }
+					/if (${PathDistance[${n}]} < ${PathDistance[${PathCount}]}) /varset PathCount ${n}
+				/next n
+				/varset SortIDTemp ${PathArray[${m}]}
+				/varset SortDistTemp ${PathDistance[${m}]}
+				/varset PathArray[${m}] ${PathArray[${PathCount}]}
+				/varset PathArray[${PathCount}] ${SortIDTemp}
+				/varset PathDistance[${m}] ${PathDistance[${PathCount}]}
+				/varset PathDistance[${PathCount}] ${SortDistTemp}
+				/if (${m2}==${ECount}) /break
+				/if (${DebugPull}) /echo \atDEBUGPULL /echo \atDEBUGPULL FindMobNAV: PathNum: ${PathDistance[${m}]} PathDistance:${PathDistance[${PathCount}]} \agLine#: ${Macro.CurLine}
+			/next m
+		}
         /for i ${BCount} to ${ECount}
             /if (${DebugPull}) /echo \atDEBUGPULL FindMobNAV 1.0:  ReadyToPullFlag: ${PFlag} Pullcount: ${ECount} \agLine#: ${Macro.CurLine}
                     /varset PullMob ${PathArray[${i}]}
@@ -7341,6 +7334,7 @@ Sub BindCheck
         /varset Medding 1
         :wait_for_resume
             /doevents
+			MOBINCAMP
             /if (${ReturnToCamp} && ${Math.Distance[${CampYLoc},${CampXLoc}]} > 15 ) {
                 /call DoWeMove 1 checkstats
                 /delay 100 ${MoveTo.Stopped}
@@ -7469,10 +7463,11 @@ Sub BindCheck
 		/call CombatReset 1 switch
         /echo New target called
         /varset MyTargetID ${NewTarID}
-		/squelch /target id ${NewTarID}
-		/if (${DPSOn} && ${MeleeOn} && ${Target.PctHPs}<=${AssistAt}) /nav id ${MyTargetID}
+		/varset MyTargetName ${Spawn[id NewTarID].CleanName}
+		/squelch /target id ${MyTargetID}
+		/if (${DPSOn} && ${MeleeOn}) /nav id ${MyTargetID}
         
-		/call EngageTarget
+		|/call EngageTarget
     /return
 
 | ----------------------------------------------------------------------------
@@ -7768,6 +7763,7 @@ Sub BindCheck
 | ----------------------------------------------------------------------------
     Sub Bind_MakeCampHere
         /if (${EQBCOn} && ${Macro.IsTLO[EQBC]}) {
+			/varset CampZone ${Zone.ID}
             /bcg //camphere 
         } else {
             /echo Makecamphere command requires MQ2EQBC plugin loaded and EQBCOn flag turned on.
@@ -9967,3 +9963,35 @@ Sub BindCheck
         }
         /varset SpellReadyL ${Select[TRUE,${Me.AltAbilityReady[${castWhat}]},${Me.ItemReady[=${castWhat}]},${Me.CombatAbilityReady[${castWhat}]},${Me.AbilityReady[${castWhat}]},${Me.SpellReady[${castWhat}]}]}
     /return ${SpellReadyL}
+	
+	
+	
+|-----------------------------------------------------------------------------
+| SUB: TheDarknessHowls
+| ----------------------------------------------------------------------------    
+    Sub Event_TheDarknessHowls
+        /call Bind_BackOff
+    /return
+
+|-----------------------------------------------------------------------------
+| SUB: MobMez
+| ----------------------------------------------------------------------------    
+    Sub Event_MobMez
+        /if (${Select[${Me.Class.ShortName},WAR,CLR]}==0) {
+			/return
+		} else /if (${Select[${Me.Class.ShortName},WAR,CLR]}==1) { 
+			/declare WaitTimerCD2 timer local 
+			/varset WaitTimerCD2 30
+			/squelch /target id ${MyTargetID}
+			/delay 10 ${Target.ID}==${MyTargetID}
+			/while (${Me.CombatAbilityReady[${Spell[Unyielding Attention].RankName}]} && ${WaitTimerCD2}) {
+                /disc ${Me.CombatAbility[${Me.CombatAbility[${Spell[Unyielding Attention].RankName}]}].ID}
+                /delay 5
+            }
+			/echo Agro Lock!
+		} else /if (${Select[${Me.Class.ShortName},WAR,CLR]}==2) {
+			/squelch /target id ${MainAssistID}
+			/delay 10 ${Target.ID}==${MainAssistID}
+			/alt act 153
+		}
+    /return   
